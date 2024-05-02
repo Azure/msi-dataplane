@@ -1,0 +1,247 @@
+---
+version: 2
+interactions:
+    - id: 0
+      request:
+        proto: HTTP/1.1
+        proto_major: 1
+        proto_minor: 1
+        content_length: 0
+        transfer_encoding: []
+        trailer: {}
+        host: vcr-kv-g5n54x.vault.azure.net
+        remote_addr: ""
+        request_uri: ""
+        body: ""
+        form: {}
+        headers:
+            Accept:
+                - application/json
+            Content-Length:
+                - "37"
+            Content-Type:
+                - application/json
+            User-Agent:
+                - azsdk-go-azsecrets/v1.1.0 (go1.22.2; linux)
+        url: https://vcr-kv-g5n54x.vault.azure.net/secrets/bogus?api-version=7.5
+        method: PUT
+      response:
+        proto: HTTP/1.1
+        proto_major: 1
+        proto_minor: 1
+        transfer_encoding: []
+        trailer: {}
+        content_length: 97
+        uncompressed: false
+        body: '{"error":{"code":"Unauthorized","message":"AKV10000: Request is missing a Bearer or PoP token."}}'
+        headers:
+            Cache-Control:
+                - no-cache
+            Content-Length:
+                - "97"
+            Content-Type:
+                - application/json; charset=utf-8
+            Date:
+                - Fri, 26 Apr 2024 07:45:36 GMT
+            Expires:
+                - "-1"
+            Pragma:
+                - no-cache
+            Strict-Transport-Security:
+                - max-age=31536000;includeSubDomains
+            Www-Authenticate:
+                - Bearer authorization="https://login.microsoftonline.com/17820104-2f75-41cc-bac0-4c79f86f1499", resource="https://vault.azure.net"
+            X-Content-Type-Options:
+                - nosniff
+            X-Ms-Keyvault-Network-Info:
+                - conn_type=Ipv4;addr=24.19.121.216;act_addr_fam=InterNetwork;
+            X-Ms-Keyvault-Region:
+                - eastus
+            X-Ms-Keyvault-Service-Version:
+                - 1.9.1430.1
+            X-Ms-Request-Id:
+                - 86c39051-bf0b-40a1-b246-b2c621261f73
+        status: 401 Unauthorized
+        code: 401
+        duration: 422.745486ms
+    - id: 1
+      request:
+        proto: HTTP/1.1
+        proto_major: 1
+        proto_minor: 1
+        content_length: 37
+        transfer_encoding: []
+        trailer: {}
+        host: vcr-kv-g5n54x.vault.azure.net
+        remote_addr: ""
+        request_uri: ""
+        body: '{"value":"{\"client_id\":\"bogus\"}"}'
+        form: {}
+        headers:
+            Accept:
+                - application/json
+            Content-Length:
+                - "37"
+            Content-Type:
+                - application/json
+            User-Agent:
+                - azsdk-go-azsecrets/v1.1.0 (go1.22.2; linux)
+        url: https://vcr-kv-g5n54x.vault.azure.net/secrets/bogus?api-version=7.5
+        method: PUT
+      response:
+        proto: HTTP/1.1
+        proto_major: 1
+        proto_minor: 1
+        transfer_encoding: []
+        trailer: {}
+        content_length: 262
+        uncompressed: false
+        body: '{"value":"{\"client_id\":\"bogus\"}","id":"https://vcr-kv-g5n54x.vault.azure.net/secrets/bogus/546fe9be85f543fdb4540352e9b74e61","attributes":{"enabled":true,"created":1714117539,"updated":1714117539,"recoveryLevel":"Recoverable+Purgeable","recoverableDays":90}}'
+        headers:
+            Cache-Control:
+                - no-cache
+            Content-Length:
+                - "262"
+            Content-Type:
+                - application/json; charset=utf-8
+            Date:
+                - Fri, 26 Apr 2024 07:45:38 GMT
+            Expires:
+                - "-1"
+            Pragma:
+                - no-cache
+            Strict-Transport-Security:
+                - max-age=31536000;includeSubDomains
+            X-Content-Type-Options:
+                - nosniff
+            X-Ms-Keyvault-Network-Info:
+                - conn_type=Ipv4;addr=24.19.121.216;act_addr_fam=InterNetwork;
+            X-Ms-Keyvault-Rbac-Assignment-Id:
+                - e2f1815862ad4add978d30b7a9a5ced9
+            X-Ms-Keyvault-Region:
+                - eastus
+            X-Ms-Keyvault-Service-Version:
+                - 1.9.1430.1
+            X-Ms-Request-Id:
+                - 852d401c-4114-43d3-a06b-a669006bbec5
+        status: 200 OK
+        code: 200
+        duration: 254.687898ms
+    - id: 2
+      request:
+        proto: HTTP/1.1
+        proto_major: 1
+        proto_minor: 1
+        content_length: 0
+        transfer_encoding: []
+        trailer: {}
+        host: vcr-kv-g5n54x.vault.azure.net
+        remote_addr: ""
+        request_uri: ""
+        body: ""
+        form: {}
+        headers:
+            Accept:
+                - application/json
+            User-Agent:
+                - azsdk-go-azsecrets/v1.1.0 (go1.22.2; linux)
+        url: https://vcr-kv-g5n54x.vault.azure.net/secrets/bogus/?api-version=7.5
+        method: GET
+      response:
+        proto: HTTP/1.1
+        proto_major: 1
+        proto_minor: 1
+        transfer_encoding: []
+        trailer: {}
+        content_length: 262
+        uncompressed: false
+        body: '{"value":"{\"client_id\":\"bogus\"}","id":"https://vcr-kv-g5n54x.vault.azure.net/secrets/bogus/546fe9be85f543fdb4540352e9b74e61","attributes":{"enabled":true,"created":1714117539,"updated":1714117539,"recoveryLevel":"Recoverable+Purgeable","recoverableDays":90}}'
+        headers:
+            Cache-Control:
+                - no-cache
+            Content-Length:
+                - "262"
+            Content-Type:
+                - application/json; charset=utf-8
+            Date:
+                - Fri, 26 Apr 2024 07:45:38 GMT
+            Expires:
+                - "-1"
+            Pragma:
+                - no-cache
+            Strict-Transport-Security:
+                - max-age=31536000;includeSubDomains
+            X-Content-Type-Options:
+                - nosniff
+            X-Ms-Keyvault-Network-Info:
+                - conn_type=Ipv4;addr=24.19.121.216;act_addr_fam=InterNetwork;
+            X-Ms-Keyvault-Rbac-Assignment-Id:
+                - e2f1815862ad4add978d30b7a9a5ced9
+            X-Ms-Keyvault-Region:
+                - eastus
+            X-Ms-Keyvault-Service-Version:
+                - 1.9.1430.1
+            X-Ms-Request-Id:
+                - 9b965206-6394-4af8-bc2a-c46f5d373747
+        status: 200 OK
+        code: 200
+        duration: 105.38185ms
+    - id: 3
+      request:
+        proto: HTTP/1.1
+        proto_major: 1
+        proto_minor: 1
+        content_length: 0
+        transfer_encoding: []
+        trailer: {}
+        host: vcr-kv-g5n54x.vault.azure.net
+        remote_addr: ""
+        request_uri: ""
+        body: ""
+        form: {}
+        headers:
+            Accept:
+                - application/json
+            User-Agent:
+                - azsdk-go-azsecrets/v1.1.0 (go1.22.2; linux)
+        url: https://vcr-kv-g5n54x.vault.azure.net/secrets/bogus?api-version=7.5
+        method: DELETE
+      response:
+        proto: HTTP/1.1
+        proto_major: 1
+        proto_minor: 1
+        transfer_encoding: []
+        trailer: {}
+        content_length: 357
+        uncompressed: false
+        body: '{"recoveryId":"https://vcr-kv-g5n54x.vault.azure.net/deletedsecrets/bogus","deletedDate":1714117539,"scheduledPurgeDate":1721893539,"id":"https://vcr-kv-g5n54x.vault.azure.net/secrets/bogus/546fe9be85f543fdb4540352e9b74e61","attributes":{"enabled":true,"created":1714117539,"updated":1714117539,"recoveryLevel":"Recoverable+Purgeable","recoverableDays":90}}'
+        headers:
+            Cache-Control:
+                - no-cache
+            Content-Length:
+                - "357"
+            Content-Type:
+                - application/json; charset=utf-8
+            Date:
+                - Fri, 26 Apr 2024 07:45:38 GMT
+            Expires:
+                - "-1"
+            Pragma:
+                - no-cache
+            Strict-Transport-Security:
+                - max-age=31536000;includeSubDomains
+            X-Content-Type-Options:
+                - nosniff
+            X-Ms-Keyvault-Network-Info:
+                - conn_type=Ipv4;addr=24.19.121.216;act_addr_fam=InterNetwork;
+            X-Ms-Keyvault-Rbac-Assignment-Id:
+                - e2f1815862ad4add978d30b7a9a5ced9
+            X-Ms-Keyvault-Region:
+                - eastus
+            X-Ms-Keyvault-Service-Version:
+                - 1.9.1430.1
+            X-Ms-Request-Id:
+                - a22b0c80-c2c6-4c49-861c-4a58e90969a4
+        status: 200 OK
+        code: 200
+        duration: 140.402818ms
