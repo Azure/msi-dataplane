@@ -3,8 +3,9 @@
 package dataplane
 
 import (
-	"msi-prototype/internal/test"
 	"testing"
+
+	"github.com/Azure/msi-dataplane/internal/test"
 )
 
 func TestNewClient(t *testing.T) {

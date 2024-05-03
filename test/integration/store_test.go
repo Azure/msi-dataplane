@@ -9,13 +9,12 @@ import (
 	"reflect"
 	"testing"
 
-	"msi-prototype/internal/test"
-	"msi-prototype/pkg/dataplane"
-	"msi-prototype/pkg/store"
-
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azsecrets"
+	"github.com/Azure/msi-dataplane/internal/test"
+	"github.com/Azure/msi-dataplane/pkg/dataplane"
+	"github.com/Azure/msi-dataplane/pkg/store"
 	"gopkg.in/dnaeon/go-vcr.v3/cassette"
 	"gopkg.in/dnaeon/go-vcr.v3/recorder"
 )
