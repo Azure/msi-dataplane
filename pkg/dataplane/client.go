@@ -6,7 +6,10 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/runtime"
 )
 
-// TODO - Add parameters to specify module name and module verison in azcore.NewClient()
+// TODO - Tie the module version to update automatically with new releases
+const moduleVersion = "v0.0.1"
+
+// TODO - Add parameter to specify module name in azcore.NewClient()
 // NewClient creates a new Managed Identity Dataplane API client
 func NewClient(aud, cloud string, cred azcore.TokenCredential) (*ManagedIdentityDataPlaneAPIClient, error) {
 	plOpts := runtime.PipelineOptions{
@@ -18,7 +21,7 @@ func NewClient(aud, cloud string, cred azcore.TokenCredential) (*ManagedIdentity
 		},
 	}
 
-	client, err := azcore.NewClient("managedidentitydataplane.APIClient", "v0.0.1", plOpts, nil)
+	client, err := azcore.NewClient("managedidentitydataplane.APIClient", moduleVersion, plOpts, nil)
 	if err != nil {
 		return nil, err
 	}
