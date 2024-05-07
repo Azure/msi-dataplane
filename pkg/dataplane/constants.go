@@ -3,21 +3,21 @@ package dataplane
 type contextKey string
 
 const (
-	IdentityURLKey contextKey = MSIIdentityURLHeader
-
-	// MSI Headers
-	MSIIdentityURLHeader  = "x-ms-identity-url"
-	apiVersionParameter   = "api-version"
-	HeaderAuthorization   = "authorization"
-	HeaderWWWAuthenticate = "WWW-Authenticate"
-
-	// MSI Endpoints sub domain
-	publicMSIEndpoint = "identity.azure.net"
-	usGovMSIEndpoint  = "identity.usgovcloudapi.net"
+	IdentityURLKey contextKey = msiIdentityURLHeader
 
 	// Cloud Environments
 	AzurePublicCloud = "AZUREPUBLICCLOUD"
 	AzureUSGovCloud  = "AZUREUSGOVERNMENTCLOUD"
+
+	// MSI Headers
+	msiIdentityURLHeader  = "x-ms-identity-url"
+	apiVersionParameter   = "api-version"
+	headerAuthorization   = "authorization"
+	headerWWWAuthenticate = "WWW-Authenticate"
+
+	// MSI Endpoints sub domain
+	publicMSIEndpoint = "identity.azure.net"
+	usGovMSIEndpoint  = "identity.usgovcloudapi.net"
 
 	https = "https"
 )

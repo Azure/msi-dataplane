@@ -29,7 +29,7 @@ func newAuthenticator(cred azcore.TokenCredential, audience string) policy.Polic
 			},
 			// Inspect WWW-Authenticate header returned from challenge
 			OnChallenge: func(req *policy.Request, resp *http.Response, authenticateAndAuthorize func(policy.TokenRequestOptions) error) error {
-				authHeader := resp.Header.Get(HeaderWWWAuthenticate)
+				authHeader := resp.Header.Get(headerWWWAuthenticate)
 
 				// Parse the returned challenge
 				parts := strings.Split(authHeader, " ")
@@ -43,7 +43,7 @@ func newAuthenticator(cred azcore.TokenCredential, audience string) policy.Polic
 					}
 				}
 
-				u, err := url.Parse(vals[HeaderAuthorization])
+				u, err := url.Parse(vals[headerAuthorization])
 				if err != nil {
 					return fmt.Errorf("%w: %w", errInvalidURL, err)
 				}
