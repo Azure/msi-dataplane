@@ -12,7 +12,7 @@ func NewClient(aud, cloud string, cred azcore.TokenCredential) (*ManagedIdentity
 		PerCall: []policy.Policy{
 			newAuthenticator(cred, aud),
 			&injectIdentityURLPolicy{
-				validator: getValidator(cloud),
+				msiHost: getMsiHost(cloud),
 			},
 		},
 	}
@@ -23,4 +23,13 @@ func NewClient(aud, cloud string, cred azcore.TokenCredential) (*ManagedIdentity
 	}
 
 	return &ManagedIdentityDataPlaneAPIClient{internal: client}, nil
+}
+
+func getMsiHost(cloud string) string {
+	switch cloud {
+	case AzureUSGovCloud:
+		return usGovMSIEndpoint
+	default:
+		return publicMSIEndpoint
+	}
 }

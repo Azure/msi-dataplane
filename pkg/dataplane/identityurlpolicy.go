@@ -1,33 +1,46 @@
 package dataplane
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
+	"regexp"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
+)
+
+var (
+	errAPIVersion          = errors.New("the api-version parameter was not in MSI data plane request")
+	errInvalidCtxValueType = errors.New("the identity URL context value is not a string")
+	errInvalidDomain       = errors.New("the MSI URL was not the expected domain")
+	errInvalidIdentityURL  = errors.New("the identity URL derived from the context key `x-ms-identity-url` could not be parsed")
+	errNotHTTPS            = errors.New("the scheme of the MSI URL is not https")
 )
 
 // injectIdentityURLPolicy injects the msi url to be used when calling the MSI dataplane swagger api client
 type injectIdentityURLPolicy struct {
 	nextForTest func(req *policy.Request) (*http.Response, error)
-	validator   validator
+	msiHost     string
 }
 
 func (t *injectIdentityURLPolicy) Do(req *policy.Request) (*http.Response, error) {
 	// The Context has the identity url that we need to append with the apiVersion
 	apiVersion := req.Raw().URL.Query().Get(apiVersionParameter)
-	if err := t.validator.validateApiVersion(apiVersion); err != nil {
+	if err := validateApiVersion(apiVersion); err != nil {
 		return nil, errAPIVersion
 	}
 
-	rawIdentityURL := req.Raw().Context().Value(IdentityURLKey).(string)
+	rawIdentityURL, ok := req.Raw().Context().Value(IdentityURLKey).(string)
+	if !ok {
+		return nil, errInvalidCtxValueType
+	}
 	msiURL, err := url.Parse(rawIdentityURL)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %w", errInvalidURL, err)
+		return nil, fmt.Errorf("%w: %w", errInvalidIdentityURL, err)
 	}
 
-	if err := t.validator.validateIdentityUrl(msiURL); err != nil {
+	if err := validateIdentityUrl(msiURL, t.msiHost); err != nil {
 		return nil, fmt.Errorf("MSI identity URL: %q is invalid: %w", msiURL, err)
 	}
 
@@ -39,16 +52,39 @@ func (t *injectIdentityURLPolicy) Do(req *policy.Request) (*http.Response, error
 	return t.next(req)
 }
 
-func appendAPIVersion(u *url.URL, version string) {
-	q := u.Query()
-	q.Set(apiVersionParameter, version)
-	u.RawQuery = q.Encode()
-}
-
 // allows to fake the response in test
 func (t *injectIdentityURLPolicy) next(req *policy.Request) (*http.Response, error) {
 	if t.nextForTest == nil {
 		return req.Next()
 	}
 	return t.nextForTest(req)
+}
+
+func appendAPIVersion(u *url.URL, version string) {
+	q := u.Query()
+	q.Set(apiVersionParameter, version)
+	u.RawQuery = q.Encode()
+}
+
+func getHostRegexp(msiEndpoint string) *regexp.Regexp {
+	return regexp.MustCompile("(?i)^[^.]+[.]" + regexp.QuoteMeta(msiEndpoint) + "$")
+}
+
+func validateApiVersion(version string) error {
+	if version == "" {
+		return errAPIVersion
+	}
+	return nil
+}
+
+func validateIdentityUrl(u *url.URL, msiEndpoint string) error {
+	if u.Scheme != https {
+		return fmt.Errorf("%w: %q", errNotHTTPS, u)
+	}
+
+	if !getHostRegexp(msiEndpoint).MatchString(u.Host) {
+		return fmt.Errorf("%w: Given: %q, Expected: %q", errInvalidDomain, u.Host, msiEndpoint)
+	}
+
+	return nil
 }

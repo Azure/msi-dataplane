@@ -74,7 +74,7 @@ func TestNewAuthenticator(t *testing.T) {
 			},
 			validateRes: func(g *WithT, fakeTransport *fakeTransport, resp *http.Response, err error) {
 				g.Expect(fakeTransport.reqs[0].Header).NotTo(HaveKey("Authorization"))
-				g.Expect(err).To(MatchError(errInvalidURL))
+				g.Expect(err).To(MatchError(errInvalidAuthHeader))
 				g.Expect(resp).To(Equal(fakeTransport.resps[0]))
 			},
 		},

@@ -46,7 +46,7 @@ func TestInjectURLPolicy(t *testing.T) {
 			identityURL:   "https://test.identity.azure.net/my-blah-url\"\x00\"",
 			cloud:         AzurePublicCloud,
 			apiVersion:    "?api-version=2023-02-28",
-			expectedError: errInvalidURL,
+			expectedError: errInvalidIdentityURL,
 		},
 		{
 			name:          "FAILURE - non https",
@@ -76,7 +76,7 @@ func TestInjectURLPolicy(t *testing.T) {
 					nextRequest = req.Raw()
 					return &http.Response{}, nil
 				},
-				validator: getValidator(test.cloud),
+				msiHost: getMsiHost(test.cloud),
 			}
 
 			ctx := context.Background()

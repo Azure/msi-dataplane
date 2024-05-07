@@ -14,13 +14,12 @@ import (
 )
 
 var (
-	errInvalidURL      = errors.New("the identity URL derived from the context key `x-ms-identity-url` is invalid")
-	errInvalidTenantID = errors.New("the provided tenantID is invalid")
+	errInvalidAuthHeader = errors.New("could not parse the provided WWW-Authenticate header")
+	errInvalidTenantID   = errors.New("the provided tenantID is invalid")
 )
 
 // Authenticating with MSI: https://eng.ms/docs/products/arm/rbac/managed_identities/msionboardinginteractionwithmsi .
 func newAuthenticator(cred azcore.TokenCredential, audience string) policy.Policy {
-
 	return runtime.NewBearerTokenPolicy(cred, nil, &policy.BearerTokenOptions{
 		AuthorizationHandler: policy.AuthorizationHandler{
 			// Make an unauthenticated request
@@ -45,7 +44,7 @@ func newAuthenticator(cred azcore.TokenCredential, audience string) policy.Polic
 
 				u, err := url.Parse(vals[headerAuthorization])
 				if err != nil {
-					return fmt.Errorf("%w: %w", errInvalidURL, err)
+					return fmt.Errorf("%w: %w", errInvalidAuthHeader, err)
 				}
 				tenantID := strings.ToLower(strings.Trim(u.Path, "/"))
 
