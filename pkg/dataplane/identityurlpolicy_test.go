@@ -19,7 +19,7 @@ func TestInjectURLPolicy(t *testing.T) {
 
 	tests := []struct {
 		name             string
-		identityURL      string
+		ctx              context.Context
 		finalInjectedURL string
 		finalInjectHost  string
 		cloud            string // to initialize what msi host to use
@@ -28,7 +28,7 @@ func TestInjectURLPolicy(t *testing.T) {
 	}{
 		{
 			name:             "SUCCESS - valid request with url injected - public cloud",
-			identityURL:      "https://test.identity.azure.net/my-blah-url?k1=v1&k2=v2",
+			ctx:              buildCtx("https://test.identity.azure.net/my-blah-url?k1=v1&k2=v2"),
 			finalInjectedURL: "https://test.identity.azure.net/my-blah-url?api-version=2023-02-28&k1=v1&k2=v2",
 			finalInjectHost:  "test.identity.azure.net",
 			cloud:            AzurePublicCloud,
@@ -37,27 +37,33 @@ func TestInjectURLPolicy(t *testing.T) {
 		},
 		{
 			name:          "FAILURE - no api version",
-			identityURL:   "https://test.identity.azure.net/my-blah-url?k1=v1&k2=v2",
+			ctx:           buildCtx("https://test.identity.azure.net/my-blah-url?k1=v1&k2=v2"),
 			cloud:         AzurePublicCloud,
 			expectedError: errAPIVersion,
 		},
 		{
+			name:          "FAILURE - non string context value",
+			ctx:           buildCtx(123),
+			cloud:         AzurePublicCloud,
+			expectedError: errInvalidCtxValueType,
+		},
+		{
 			name:          "FAILURE - invalid url",
-			identityURL:   "https://test.identity.azure.net/my-blah-url\"\x00\"",
+			ctx:           buildCtx("https://test.identity.azure.net/my-blah-url\"\x00\""),
 			cloud:         AzurePublicCloud,
 			apiVersion:    "?api-version=2023-02-28",
 			expectedError: errInvalidIdentityURL,
 		},
 		{
 			name:          "FAILURE - non https",
-			identityURL:   "http://test.identity.azure.net/my-blah-url",
+			ctx:           buildCtx("http://test.identity.azure.net/my-blah-url"),
 			cloud:         AzurePublicCloud,
 			apiVersion:    "?api-version=2023-02-28",
 			expectedError: errNotHTTPS,
 		},
 		{
 			name:          "FAILURE - not the correct msi host",
-			identityURL:   "https://bad.host.com/my-blah-url",
+			ctx:           buildCtx("https://bad.host.com/my-blah-url"),
 			cloud:         AzurePublicCloud,
 			apiVersion:    "?api-version=2023-02-28",
 			expectedError: errInvalidDomain,
@@ -79,11 +85,9 @@ func TestInjectURLPolicy(t *testing.T) {
 				msiHost: getMsiHost(test.cloud),
 			}
 
-			ctx := context.Background()
-			ctx = context.WithValue(ctx, IdentityURLKey, test.identityURL)
 			endpoint := "https://management.azure.com" + test.apiVersion
 			// MSI API client hardcodes the endpoint with API version, mimic that
-			req, err := runtime.NewRequest(ctx, http.MethodGet, endpoint)
+			req, err := runtime.NewRequest(test.ctx, http.MethodGet, endpoint)
 			g.Expect(err).ToNot(HaveOccurred())
 
 			_, err = injectURLPolicy.Do(req)
@@ -99,4 +103,9 @@ func TestInjectURLPolicy(t *testing.T) {
 			}
 		})
 	}
+}
+
+func buildCtx(value any) context.Context {
+	ctx := context.Background()
+	return context.WithValue(ctx, IdentityURLKey, value)
 }
