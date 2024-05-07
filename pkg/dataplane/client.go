@@ -6,6 +6,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/runtime"
 )
 
+// TODO - Add parameters to specify module name and module verison in azcore.NewClient()
 // NewClient creates a new Managed Identity Dataplane API client
 func NewClient(aud, cloud string, cred azcore.TokenCredential) (*ManagedIdentityDataPlaneAPIClient, error) {
 	plOpts := runtime.PipelineOptions{
