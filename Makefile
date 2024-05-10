@@ -1,4 +1,5 @@
 all-test:
+	@echo "Running all tests"
 	@./hack/test.sh -a
 
 generate:
@@ -10,6 +11,10 @@ integration-test:
 
 integration-test-record:
 	@./hack/test.sh -r
+
+lint:
+	@echo "Running linter"
+	@golangci-lint run
 
 tidy:
 	@echo "Tidying up"
