@@ -80,7 +80,7 @@ func validateIdentityUrl(u *url.URL, msiEndpoint string) error {
 
 	// We expect the host to have a format simliar "test.identity.azure.net"
 	// Check the suffix of host to be the same as msiEndpoint
-	if !strings.HasSuffix(u.Host, msiEndpoint) {
+	if !strings.HasSuffix(u.Hostname(), msiEndpoint) {
 		return fmt.Errorf("%w: %q", errInvalidDomain, u)
 	}
 
