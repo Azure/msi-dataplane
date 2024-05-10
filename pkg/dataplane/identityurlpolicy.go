@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"regexp"
+	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
 )
@@ -66,10 +66,6 @@ func appendAPIVersion(u *url.URL, version string) {
 	u.RawQuery = q.Encode()
 }
 
-func getHostRegexp(msiEndpoint string) *regexp.Regexp {
-	return regexp.MustCompile("(?i)^[^.]+[.]" + regexp.QuoteMeta(msiEndpoint) + "$")
-}
-
 func validateApiVersion(version string) error {
 	if version == "" {
 		return errAPIVersion
@@ -82,8 +78,16 @@ func validateIdentityUrl(u *url.URL, msiEndpoint string) error {
 		return fmt.Errorf("%w: %q", errNotHTTPS, u)
 	}
 
-	if !getHostRegexp(msiEndpoint).MatchString(u.Host) {
-		return fmt.Errorf("%w: Given: %q, Expected: %q", errInvalidDomain, u.Host, msiEndpoint)
+	// We expect the host to have a format simliar "test.identity.azure.net"
+	// Trim the first subdomain and compare the rest with msiEndpoint
+	parts := strings.SplitN(u.Host, ".", 2)
+	if len(parts) < 2 {
+		return fmt.Errorf("%w: %q", errInvalidDomain, u)
+	}
+	trimmedHost := parts[1]
+
+	if trimmedHost != msiEndpoint {
+		return fmt.Errorf("%w: %q", errInvalidDomain, u)
 	}
 
 	return nil
