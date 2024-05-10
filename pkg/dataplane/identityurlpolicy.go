@@ -79,14 +79,8 @@ func validateIdentityUrl(u *url.URL, msiEndpoint string) error {
 	}
 
 	// We expect the host to have a format simliar "test.identity.azure.net"
-	// Trim the first subdomain and compare the rest with msiEndpoint
-	parts := strings.SplitN(u.Host, ".", 2)
-	if len(parts) < 2 {
-		return fmt.Errorf("%w: %q", errInvalidDomain, u)
-	}
-	trimmedHost := parts[1]
-
-	if trimmedHost != msiEndpoint {
+	// Check the suffix of host to be the same as msiEndpoint
+	if !strings.HasSuffix(u.Host, msiEndpoint) {
 		return fmt.Errorf("%w: %q", errInvalidDomain, u)
 	}
 
