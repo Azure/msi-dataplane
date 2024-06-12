@@ -10,6 +10,7 @@ import (
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/runtime"
 	"github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azsecrets"
+	"github.com/Azure/msi-dataplane/internal/swagger"
 	"github.com/Azure/msi-dataplane/pkg/dataplane"
 	mock "github.com/Azure/msi-dataplane/pkg/store/mock_kvclient"
 	"go.uber.org/mock/gomock"
@@ -68,7 +69,9 @@ func TestGetCredentialsObject(t *testing.T) {
 
 	bogusValue := "bogus"
 	testCredentialsObject := dataplane.CredentialsObject{
-		ClientSecret: &bogusValue,
+		CredentialsObject: swagger.CredentialsObject{
+			ClientSecret: &bogusValue,
+		},
 	}
 	testCredentialsObjectBuffer, err := testCredentialsObject.MarshalJSON()
 	if err != nil {

@@ -12,6 +12,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azsecrets"
+	"github.com/Azure/msi-dataplane/internal/swagger"
 	"github.com/Azure/msi-dataplane/internal/test"
 	"github.com/Azure/msi-dataplane/pkg/dataplane"
 	"github.com/Azure/msi-dataplane/pkg/store"
@@ -64,7 +65,9 @@ func TestStore(t *testing.T) {
 	// Add a test credentials object to the store
 	bogus := "bogus"
 	testCredentialsObject := dataplane.CredentialsObject{
-		ClientID: &bogus,
+		CredentialsObject: swagger.CredentialsObject{
+			ClientID: &bogus,
+		},
 	}
 
 	if err := store.SetCredentialsObject(context.Background(), bogus, testCredentialsObject); err != nil {
