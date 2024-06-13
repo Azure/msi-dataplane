@@ -3,6 +3,7 @@ package dataplane
 import (
 	"context"
 	"fmt"
+	"reflect"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
@@ -33,10 +34,11 @@ type swaggerMSIClient interface {
 var _ swaggerMSIClient = &swagger.ManagedIdentityDataPlaneAPIClient{}
 
 var (
-	errExpectedOneMSI     = fmt.Errorf("expected one user-assigned managed identity")
-	errExpectedNonNilMSI  = fmt.Errorf("expected non-nil user-assigned managed identity")
-	errInvalidRequest     = fmt.Errorf("invalid request")
-	errResourceIDMismatch = fmt.Errorf("resource ID mismatch")
+	errExpectedNonNilField = fmt.Errorf("expected non-nil field in user-assigned managed identity")
+	errExpectedNonNilMSI   = fmt.Errorf("expected non-nil user-assigned managed identity")
+	errExpectedOneMSI      = fmt.Errorf("expected one user-assigned managed identity")
+	errInvalidRequest      = fmt.Errorf("invalid request")
+	errResourceIDMismatch  = fmt.Errorf("resource ID mismatch")
 )
 
 // TODO - Add parameter to specify module name in azcore.NewClient()
@@ -86,20 +88,35 @@ func (c *ManagedIdentityClient) GetUserAssignedMSI(ctx context.Context, request 
 		return nil, fmt.Errorf("%w, found %d", errExpectedOneMSI, len(creds.ExplicitIdentities))
 	}
 
-	uaMSI := creds.ExplicitIdentities[0]
-	if uaMSI == nil {
-		return nil, errExpectedNonNilMSI
-	}
-	if *uaMSI.ResourceID != request.ResourceID {
-		return nil, fmt.Errorf("%w, expected %s, got %s", errResourceIDMismatch, request.ResourceID, *uaMSI.ResourceID)
+	if err := validateUserAssignedMSI(creds.ExplicitIdentities[0], request.ResourceID); err != nil {
+		return nil, err
 	}
 
 	// Tenant ID is a header passed to RP frontend, so set it here if it's not set
-	if *uaMSI.TenantID == "" {
-		*uaMSI.TenantID = request.TenantID
+	if *creds.ExplicitIdentities[0].TenantID == "" {
+		*creds.ExplicitIdentities[0].TenantID = request.TenantID
 	}
 
 	return &CredentialsObject{CredentialsObject: creds.CredentialsObject}, nil
+}
+
+func validateUserAssignedMSI(identity *swagger.NestedCredentialsObject, resourceID string) error {
+	if identity == nil {
+		return errExpectedNonNilMSI
+	}
+
+	v := reflect.ValueOf(*identity)
+	for i := 0; i < v.NumField(); i++ {
+		if v.Field(i).IsNil() {
+			return fmt.Errorf("%w, field %s", errExpectedNonNilField, v.Type().Field(i).Name)
+		}
+	}
+
+	if *identity.ResourceID != resourceID {
+		return fmt.Errorf("%w, expected %s, got %s", errResourceIDMismatch, resourceID, *identity.ResourceID)
+	}
+
+	return nil
 }
 
 func getMsiHost(cloud string) string {

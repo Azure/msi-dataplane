@@ -7,6 +7,7 @@ import (
 
 	"go.uber.org/mock/gomock"
 
+	"github.com/Azure/msi-dataplane/internal/swagger"
 	"github.com/Azure/msi-dataplane/internal/test"
 	mock "github.com/Azure/msi-dataplane/pkg/dataplane/mock_swagger_client"
 )
@@ -37,6 +38,7 @@ func TestGetUserAssignedMSI(t *testing.T) {
 	swaggerClient := mock.NewMockswaggerMSIClient(mockCtrl)
 	msiClient := &ManagedIdentityClient{swaggerClient: swaggerClient}
 
+	const validIdentityURL = "https://bogus.com"
 	const validTenantID = "00000000-0000-0000-0000-000000000000"
 	const validResourceID = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/msi"
 
@@ -61,20 +63,83 @@ func TestGetUserAssignedMSI(t *testing.T) {
 		{
 			name:        "ResourceID not specified",
 			goMockCall:  func() {},
-			request:     UserAssignedMSIRequest{IdentityURL: "https://bogus.com", TenantID: validTenantID},
+			request:     UserAssignedMSIRequest{IdentityURL: validIdentityURL, TenantID: validTenantID},
 			expectedErr: errInvalidRequest,
 		},
 		{
 			name:        "TenantID not specified",
 			goMockCall:  func() {},
-			request:     UserAssignedMSIRequest{IdentityURL: "https://bogus.com", ResourceID: validResourceID},
+			request:     UserAssignedMSIRequest{IdentityURL: validIdentityURL, ResourceID: validResourceID},
 			expectedErr: errInvalidRequest,
 		},
 		{
 			name:        "TenantID not a UUID",
 			goMockCall:  func() {},
-			request:     UserAssignedMSIRequest{IdentityURL: "https://bogus.com", ResourceID: validResourceID, TenantID: "bogus"},
+			request:     UserAssignedMSIRequest{IdentityURL: validIdentityURL, ResourceID: validResourceID, TenantID: "bogus"},
 			expectedErr: errInvalidRequest,
+		},
+		{
+			name: "Zero MSIs returned",
+			goMockCall: func() {
+				swaggerClient.EXPECT().Getcreds(gomock.Any(), gomock.Any(), gomock.Any()).Return(swagger.ManagedIdentityDataPlaneAPIClientGetcredsResponse{}, nil)
+			},
+			request:     UserAssignedMSIRequest{IdentityURL: validIdentityURL, ResourceID: validResourceID, TenantID: validTenantID},
+			expectedErr: errExpectedOneMSI,
+		},
+		{
+			name: "Multiple MSIs returned",
+			goMockCall: func() {
+				identities := []*swagger.NestedCredentialsObject{nil, nil}
+				swaggerClient.EXPECT().Getcreds(gomock.Any(), gomock.Any(), gomock.Any()).Return(swagger.ManagedIdentityDataPlaneAPIClientGetcredsResponse{
+					CredentialsObject: swagger.CredentialsObject{ExplicitIdentities: identities},
+				}, nil)
+			},
+			request:     UserAssignedMSIRequest{IdentityURL: validIdentityURL, ResourceID: validResourceID, TenantID: validTenantID},
+			expectedErr: errExpectedOneMSI,
+		},
+		{
+			name: "MSI is nil",
+			goMockCall: func() {
+				identities := []*swagger.NestedCredentialsObject{nil}
+				swaggerClient.EXPECT().Getcreds(gomock.Any(), gomock.Any(), gomock.Any()).Return(swagger.ManagedIdentityDataPlaneAPIClientGetcredsResponse{
+					CredentialsObject: swagger.CredentialsObject{ExplicitIdentities: identities},
+				}, nil)
+			},
+			request:     UserAssignedMSIRequest{IdentityURL: validIdentityURL, ResourceID: validResourceID, TenantID: validTenantID},
+			expectedErr: errExpectedNonNilMSI,
+		},
+		{
+			name: "ResourceID mismatch",
+			goMockCall: func() {
+				bogusResourceID := "bogus"
+				uaMSI := getTestUaMSI("bogus")
+				uaMSI.ResourceID = &bogusResourceID
+
+				identities := []*swagger.NestedCredentialsObject{&uaMSI}
+				swaggerClient.EXPECT().Getcreds(gomock.Any(), gomock.Any(), gomock.Any()).Return(swagger.ManagedIdentityDataPlaneAPIClientGetcredsResponse{
+					CredentialsObject: swagger.CredentialsObject{ExplicitIdentities: identities},
+				}, nil)
+			},
+			request:     UserAssignedMSIRequest{IdentityURL: validIdentityURL, ResourceID: validResourceID, TenantID: validTenantID},
+			expectedErr: errResourceIDMismatch,
+		},
+		{
+			name: "Valid request",
+			goMockCall: func() {
+				resourceID := validResourceID
+				tenantID := validTenantID
+
+				uaMSI := getTestUaMSI("bogus")
+				uaMSI.ResourceID = &resourceID
+				uaMSI.TenantID = &tenantID
+
+				identities := []*swagger.NestedCredentialsObject{&uaMSI}
+				swaggerClient.EXPECT().Getcreds(gomock.Any(), gomock.Any(), gomock.Any()).Return(swagger.ManagedIdentityDataPlaneAPIClientGetcredsResponse{
+					CredentialsObject: swagger.CredentialsObject{ExplicitIdentities: identities},
+				}, nil)
+			},
+			request:     UserAssignedMSIRequest{IdentityURL: validIdentityURL, ResourceID: validResourceID, TenantID: validTenantID},
+			expectedErr: nil,
 		},
 	}
 
@@ -84,8 +149,26 @@ func TestGetUserAssignedMSI(t *testing.T) {
 			t.Parallel()
 			tc.goMockCall()
 			if _, err := msiClient.GetUserAssignedMSI(context.Background(), tc.request); !errors.Is(err, tc.expectedErr) {
-				t.Errorf("Expected %s but got: %s", tc.expectedErr, err)
+				t.Errorf("expected error: `%s` but got: `%s`", tc.expectedErr, err)
 			}
 		})
+	}
+}
+
+func getTestUaMSI(placeHolder string) swagger.NestedCredentialsObject {
+	return swagger.NestedCredentialsObject{
+		AuthenticationEndpoint:     &placeHolder,
+		CannotRenewAfter:           &placeHolder,
+		ClientID:                   &placeHolder,
+		ClientSecret:               &placeHolder,
+		ClientSecretURL:            &placeHolder,
+		CustomClaims:               &swagger.CustomClaims{},
+		MtlsAuthenticationEndpoint: &placeHolder,
+		NotAfter:                   &placeHolder,
+		NotBefore:                  &placeHolder,
+		ObjectID:                   &placeHolder,
+		RenewAfter:                 &placeHolder,
+		ResourceID:                 &placeHolder,
+		TenantID:                   &placeHolder,
 	}
 }
