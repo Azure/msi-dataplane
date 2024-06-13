@@ -32,6 +32,11 @@ type swaggerMSIClient interface {
 
 var _ swaggerMSIClient = &swagger.ManagedIdentityDataPlaneAPIClient{}
 
+// Errors
+var (
+	errInvalidRequest = fmt.Errorf("invalid request")
+)
+
 // TODO - Add parameter to specify module name in azcore.NewClient()
 // NewClient creates a new Managed Identity Dataplane API client
 func NewClient(aud, cloud string, cred azcore.TokenCredential) (*ManagedIdentityClient, error) {
@@ -56,7 +61,7 @@ func NewClient(aud, cloud string, cred azcore.TokenCredential) (*ManagedIdentity
 func (c *ManagedIdentityClient) GetUserAssignedMSI(ctx context.Context, request UserAssignedMSIRequest) (*CredentialsObject, error) {
 	validate := validator.New(validator.WithRequiredStructEnabled())
 	if err := validate.Struct(request); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %w", errInvalidRequest, err)
 	}
 
 	ctx = context.WithValue(ctx, identityURLKey, request.IdentityURL)
