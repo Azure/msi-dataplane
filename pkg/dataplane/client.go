@@ -99,11 +99,7 @@ func (c *ManagedIdentityClient) GetUserAssignedMSI(ctx context.Context, request 
 		*uaMSI.TenantID = request.TenantID
 	}
 
-	credObject := &CredentialsObject{
-		CredentialsObject: creds.CredentialsObject,
-	}
-
-	return credObject, nil
+	return &CredentialsObject{CredentialsObject: creds.CredentialsObject}, nil
 }
 
 func getMsiHost(cloud string) string {
