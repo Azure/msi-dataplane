@@ -34,6 +34,7 @@ type swaggerMSIClient interface {
 var _ swaggerMSIClient = &swagger.ManagedIdentityDataPlaneAPIClient{}
 
 var (
+	errGetCreds           = fmt.Errorf("failed to get credentials")
 	errInvalidRequest     = fmt.Errorf("invalid request")
 	errNilField           = fmt.Errorf("expected non-nil field in user-assigned managed identity")
 	errNilMSI             = fmt.Errorf("expected non-nil user-assigned managed identity")
@@ -75,7 +76,7 @@ func (c *ManagedIdentityClient) GetUserAssignedMSI(ctx context.Context, request 
 
 	creds, err := c.swaggerClient.Getcreds(ctx, credRequestDef, nil)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %w", errGetCreds, err)
 	}
 
 	//

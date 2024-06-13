@@ -40,49 +40,53 @@ func TestNewClient(t *testing.T) {
 func TestGetUserAssignedMSI(t *testing.T) {
 	t.Parallel()
 
-	mockCtrl := gomock.NewController(t)
-	swaggerClient := mock.NewMockswaggerMSIClient(mockCtrl)
-	msiClient := &ManagedIdentityClient{swaggerClient: swaggerClient}
-
 	testCases := []struct {
 		name        string
-		goMockCall  func()
+		goMockCall  func(swaggerClient *mock.MockswaggerMSIClient)
 		request     UserAssignedMSIRequest
 		expectedErr error
 	}{
 		{
 			name:        "IdenityURL not specified",
-			goMockCall:  func() {},
+			goMockCall:  func(swaggerClient *mock.MockswaggerMSIClient) {},
 			request:     UserAssignedMSIRequest{ResourceID: validResourceID, TenantID: validTenantID},
 			expectedErr: errInvalidRequest,
 		},
 		{
 			name:        "IdenityURL not a URL",
-			goMockCall:  func() {},
+			goMockCall:  func(swaggerClient *mock.MockswaggerMSIClient) {},
 			request:     UserAssignedMSIRequest{IdentityURL: "bogus", ResourceID: validResourceID, TenantID: validTenantID},
 			expectedErr: errInvalidRequest,
 		},
 		{
 			name:        "ResourceID not specified",
-			goMockCall:  func() {},
+			goMockCall:  func(swaggerClient *mock.MockswaggerMSIClient) {},
 			request:     UserAssignedMSIRequest{IdentityURL: validIdentityURL, TenantID: validTenantID},
 			expectedErr: errInvalidRequest,
 		},
 		{
 			name:        "TenantID not specified",
-			goMockCall:  func() {},
+			goMockCall:  func(swaggerClient *mock.MockswaggerMSIClient) {},
 			request:     UserAssignedMSIRequest{IdentityURL: validIdentityURL, ResourceID: validResourceID},
 			expectedErr: errInvalidRequest,
 		},
 		{
 			name:        "TenantID not a UUID",
-			goMockCall:  func() {},
+			goMockCall:  func(swaggerClient *mock.MockswaggerMSIClient) {},
 			request:     UserAssignedMSIRequest{IdentityURL: validIdentityURL, ResourceID: validResourceID, TenantID: "bogus"},
 			expectedErr: errInvalidRequest,
 		},
 		{
+			name: "Swagger client error",
+			goMockCall: func(swaggerClient *mock.MockswaggerMSIClient) {
+				swaggerClient.EXPECT().Getcreds(gomock.Any(), gomock.Any(), gomock.Any()).Return(swagger.ManagedIdentityDataPlaneAPIClientGetcredsResponse{}, errors.New("bogus"))
+			},
+			request:     UserAssignedMSIRequest{IdentityURL: validIdentityURL, ResourceID: validResourceID, TenantID: validTenantID},
+			expectedErr: errGetCreds,
+		},
+		{
 			name: "Zero MSIs returned",
-			goMockCall: func() {
+			goMockCall: func(swaggerClient *mock.MockswaggerMSIClient) {
 				swaggerClient.EXPECT().Getcreds(gomock.Any(), gomock.Any(), gomock.Any()).Return(swagger.ManagedIdentityDataPlaneAPIClientGetcredsResponse{}, nil)
 			},
 			request:     UserAssignedMSIRequest{IdentityURL: validIdentityURL, ResourceID: validResourceID, TenantID: validTenantID},
@@ -90,7 +94,7 @@ func TestGetUserAssignedMSI(t *testing.T) {
 		},
 		{
 			name: "Multiple MSIs returned",
-			goMockCall: func() {
+			goMockCall: func(swaggerClient *mock.MockswaggerMSIClient) {
 				identities := []*swagger.NestedCredentialsObject{nil, nil}
 				swaggerClient.EXPECT().Getcreds(gomock.Any(), gomock.Any(), gomock.Any()).Return(swagger.ManagedIdentityDataPlaneAPIClientGetcredsResponse{
 					CredentialsObject: swagger.CredentialsObject{ExplicitIdentities: identities},
@@ -101,7 +105,7 @@ func TestGetUserAssignedMSI(t *testing.T) {
 		},
 		{
 			name: "Valid request",
-			goMockCall: func() {
+			goMockCall: func(swaggerClient *mock.MockswaggerMSIClient) {
 				resourceID := validResourceID
 				tenantID := validTenantID
 
@@ -123,7 +127,13 @@ func TestGetUserAssignedMSI(t *testing.T) {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			tc.goMockCall()
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
+
+			swaggerClient := mock.NewMockswaggerMSIClient(mockCtrl)
+			tc.goMockCall(swaggerClient)
+
+			msiClient := &ManagedIdentityClient{swaggerClient: swaggerClient}
 			if _, err := msiClient.GetUserAssignedMSI(context.Background(), tc.request); !errors.Is(err, tc.expectedErr) {
 				t.Errorf("expected error: `%s` but got: `%s`", tc.expectedErr, err)
 			}
