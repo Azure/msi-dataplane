@@ -15,7 +15,7 @@ import (
 const moduleVersion = "v0.0.1"
 
 type ManagedIdentityClient struct {
-	swaggerClient *swagger.ManagedIdentityDataPlaneAPIClient
+	swaggerClient swaggerMSIClient
 }
 
 type UserAssignedMSIRequest struct {
@@ -23,6 +23,12 @@ type UserAssignedMSIRequest struct {
 	ResourceID  string `validate:"required"`
 	TenantID    string `validate:"required,uuid"`
 }
+
+type swaggerMSIClient interface {
+	Getcreds(ctx context.Context, credRequest swagger.CredRequestDefinition, options *swagger.ManagedIdentityDataPlaneAPIClientGetcredsOptions) (swagger.ManagedIdentityDataPlaneAPIClientGetcredsResponse, error)
+}
+
+var _ swaggerMSIClient = &swagger.ManagedIdentityDataPlaneAPIClient{}
 
 // TODO - Add parameter to specify module name in azcore.NewClient()
 // NewClient creates a new Managed Identity Dataplane API client
