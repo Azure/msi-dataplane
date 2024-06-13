@@ -11,6 +11,8 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
+//go:generate /bin/bash -c "../../hack/mockgen.sh mock_swagger_client/zz_generated_mocks.go client.go"
+
 // TODO - Tie the module version to update automatically with new releases
 const moduleVersion = "v0.0.1"
 
