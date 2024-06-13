@@ -76,8 +76,12 @@ func (c *ManagedIdentityClient) GetUserAssignedMSI(ctx context.Context, request 
 		return nil, err
 	}
 
-	// GetCreds can return multiple identities, but we only expect one
-	// Return if we find more than one so we don't use an identity we are not suppose to use
+	//
+	// GetCreds can return multiple identities. We expect one. Return if we don't find one.
+	//
+	// If mulitple identities are found, we return because we don't want to accidentally process
+	// an identitiy that wasn't requested.
+	//
 	if len(creds.ExplicitIdentities) != 1 {
 		return nil, fmt.Errorf("%w, found %d", errExpectedOneMSI, len(creds.ExplicitIdentities))
 	}
@@ -89,6 +93,8 @@ func (c *ManagedIdentityClient) GetUserAssignedMSI(ctx context.Context, request 
 	if *uaMSI.ResourceID != request.ResourceID {
 		return nil, fmt.Errorf("%w, expected %s, got %s", errResourceIDMismatch, request.ResourceID, *uaMSI.ResourceID)
 	}
+
+	// Tenant ID is a header passed to RP frontend, so set it here if it's not set
 	if *uaMSI.TenantID == "" {
 		*uaMSI.TenantID = request.TenantID
 	}
