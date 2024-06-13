@@ -12,6 +12,12 @@ import (
 	mock "github.com/Azure/msi-dataplane/pkg/dataplane/mock_swagger_client"
 )
 
+const (
+	validIdentityURL = "https://bogus.com"
+	validTenantID    = "00000000-0000-0000-0000-000000000000"
+	validResourceID  = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/msi"
+)
+
 func TestNewClient(t *testing.T) {
 	t.Parallel()
 
@@ -37,10 +43,6 @@ func TestGetUserAssignedMSI(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	swaggerClient := mock.NewMockswaggerMSIClient(mockCtrl)
 	msiClient := &ManagedIdentityClient{swaggerClient: swaggerClient}
-
-	const validIdentityURL = "https://bogus.com"
-	const validTenantID = "00000000-0000-0000-0000-000000000000"
-	const validResourceID = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/msi"
 
 	testCases := []struct {
 		name        string
@@ -84,7 +86,7 @@ func TestGetUserAssignedMSI(t *testing.T) {
 				swaggerClient.EXPECT().Getcreds(gomock.Any(), gomock.Any(), gomock.Any()).Return(swagger.ManagedIdentityDataPlaneAPIClientGetcredsResponse{}, nil)
 			},
 			request:     UserAssignedMSIRequest{IdentityURL: validIdentityURL, ResourceID: validResourceID, TenantID: validTenantID},
-			expectedErr: errExpectedOneMSI,
+			expectedErr: errNotOneMSI,
 		},
 		{
 			name: "Multiple MSIs returned",
@@ -95,33 +97,7 @@ func TestGetUserAssignedMSI(t *testing.T) {
 				}, nil)
 			},
 			request:     UserAssignedMSIRequest{IdentityURL: validIdentityURL, ResourceID: validResourceID, TenantID: validTenantID},
-			expectedErr: errExpectedOneMSI,
-		},
-		{
-			name: "MSI is nil",
-			goMockCall: func() {
-				identities := []*swagger.NestedCredentialsObject{nil}
-				swaggerClient.EXPECT().Getcreds(gomock.Any(), gomock.Any(), gomock.Any()).Return(swagger.ManagedIdentityDataPlaneAPIClientGetcredsResponse{
-					CredentialsObject: swagger.CredentialsObject{ExplicitIdentities: identities},
-				}, nil)
-			},
-			request:     UserAssignedMSIRequest{IdentityURL: validIdentityURL, ResourceID: validResourceID, TenantID: validTenantID},
-			expectedErr: errExpectedNonNilMSI,
-		},
-		{
-			name: "ResourceID mismatch",
-			goMockCall: func() {
-				bogusResourceID := "bogus"
-				uaMSI := getTestUaMSI("bogus")
-				uaMSI.ResourceID = &bogusResourceID
-
-				identities := []*swagger.NestedCredentialsObject{&uaMSI}
-				swaggerClient.EXPECT().Getcreds(gomock.Any(), gomock.Any(), gomock.Any()).Return(swagger.ManagedIdentityDataPlaneAPIClientGetcredsResponse{
-					CredentialsObject: swagger.CredentialsObject{ExplicitIdentities: identities},
-				}, nil)
-			},
-			request:     UserAssignedMSIRequest{IdentityURL: validIdentityURL, ResourceID: validResourceID, TenantID: validTenantID},
-			expectedErr: errResourceIDMismatch,
+			expectedErr: errNotOneMSI,
 		},
 		{
 			name: "Valid request",
@@ -129,11 +105,11 @@ func TestGetUserAssignedMSI(t *testing.T) {
 				resourceID := validResourceID
 				tenantID := validTenantID
 
-				uaMSI := getTestUaMSI("bogus")
+				uaMSI := getTestMSI("bogus")
 				uaMSI.ResourceID = &resourceID
 				uaMSI.TenantID = &tenantID
 
-				identities := []*swagger.NestedCredentialsObject{&uaMSI}
+				identities := []*swagger.NestedCredentialsObject{uaMSI}
 				swaggerClient.EXPECT().Getcreds(gomock.Any(), gomock.Any(), gomock.Any()).Return(swagger.ManagedIdentityDataPlaneAPIClientGetcredsResponse{
 					CredentialsObject: swagger.CredentialsObject{ExplicitIdentities: identities},
 				}, nil)
@@ -155,8 +131,59 @@ func TestGetUserAssignedMSI(t *testing.T) {
 	}
 }
 
-func getTestUaMSI(placeHolder string) swagger.NestedCredentialsObject {
-	return swagger.NestedCredentialsObject{
+func TestValidateUserAssignedMSI(t *testing.T) {
+	t.Parallel()
+
+	const identityResourceID = "resourceID"
+
+	testCases := []struct {
+		name        string
+		getMSI      func() *swagger.NestedCredentialsObject
+		resourceID  string
+		expectedErr error
+	}{
+		{
+			name:        "nil identity",
+			getMSI:      func() *swagger.NestedCredentialsObject { return nil },
+			resourceID:  "someResourceID",
+			expectedErr: errNilMSI,
+		},
+		{
+			name:        "nil fields",
+			getMSI:      func() *swagger.NestedCredentialsObject { return &swagger.NestedCredentialsObject{} },
+			resourceID:  "someResourceID",
+			expectedErr: errNilField,
+		},
+		{
+			name: "mismatched resourceID",
+			getMSI: func() *swagger.NestedCredentialsObject {
+				return getTestMSI("bogus")
+			},
+			resourceID:  "someResourceID",
+			expectedErr: errResourceIDMismatch,
+		},
+		{
+			name:        "success",
+			getMSI:      func() *swagger.NestedCredentialsObject { return getTestMSI(identityResourceID) },
+			resourceID:  identityResourceID,
+			expectedErr: nil,
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			msi := tc.getMSI()
+			if err := validateUserAssignedMSI(msi, tc.resourceID); !errors.Is(err, tc.expectedErr) {
+				t.Errorf("expected error: `%s` but got: `%s`", tc.expectedErr, err)
+			}
+		})
+	}
+}
+
+func getTestMSI(placeHolder string) *swagger.NestedCredentialsObject {
+	return &swagger.NestedCredentialsObject{
 		AuthenticationEndpoint:     &placeHolder,
 		CannotRenewAfter:           &placeHolder,
 		ClientID:                   &placeHolder,

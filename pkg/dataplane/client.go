@@ -34,11 +34,11 @@ type swaggerMSIClient interface {
 var _ swaggerMSIClient = &swagger.ManagedIdentityDataPlaneAPIClient{}
 
 var (
-	errExpectedNonNilField = fmt.Errorf("expected non-nil field in user-assigned managed identity")
-	errExpectedNonNilMSI   = fmt.Errorf("expected non-nil user-assigned managed identity")
-	errExpectedOneMSI      = fmt.Errorf("expected one user-assigned managed identity")
-	errInvalidRequest      = fmt.Errorf("invalid request")
-	errResourceIDMismatch  = fmt.Errorf("resource ID mismatch")
+	errInvalidRequest     = fmt.Errorf("invalid request")
+	errNilField           = fmt.Errorf("expected non-nil field in user-assigned managed identity")
+	errNilMSI             = fmt.Errorf("expected non-nil user-assigned managed identity")
+	errNotOneMSI          = fmt.Errorf("expected one user-assigned managed identity")
+	errResourceIDMismatch = fmt.Errorf("resource ID mismatch")
 )
 
 // TODO - Add parameter to specify module name in azcore.NewClient()
@@ -85,7 +85,7 @@ func (c *ManagedIdentityClient) GetUserAssignedMSI(ctx context.Context, request 
 	// an identitiy that wasn't requested.
 	//
 	if len(creds.ExplicitIdentities) != 1 {
-		return nil, fmt.Errorf("%w, found %d", errExpectedOneMSI, len(creds.ExplicitIdentities))
+		return nil, fmt.Errorf("%w, found %d", errNotOneMSI, len(creds.ExplicitIdentities))
 	}
 
 	if err := validateUserAssignedMSI(creds.ExplicitIdentities[0], request.ResourceID); err != nil {
@@ -102,13 +102,13 @@ func (c *ManagedIdentityClient) GetUserAssignedMSI(ctx context.Context, request 
 
 func validateUserAssignedMSI(identity *swagger.NestedCredentialsObject, resourceID string) error {
 	if identity == nil {
-		return errExpectedNonNilMSI
+		return errNilMSI
 	}
 
 	v := reflect.ValueOf(*identity)
 	for i := 0; i < v.NumField(); i++ {
 		if v.Field(i).IsNil() {
-			return fmt.Errorf("%w, field %s", errExpectedNonNilField, v.Type().Field(i).Name)
+			return fmt.Errorf("%w, field %s", errNilField, v.Type().Field(i).Name)
 		}
 	}
 
