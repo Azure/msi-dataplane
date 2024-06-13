@@ -62,12 +62,12 @@ func (c *ManagedIdentityClient) GetUserAssignedMSI(ctx context.Context, request 
 	}
 
 	if len(creds.ExplicitIdentities) != 1 {
-		return nil, fmt.Errorf("Expected one user-assigned managed identity, found %d", len(creds.ExplicitIdentities))
+		return nil, fmt.Errorf("expected one user-assigned managed identity, found %d", len(creds.ExplicitIdentities))
 	}
 
 	for _, identity := range creds.ExplicitIdentities {
 		if *identity.ResourceID != request.ResourceID {
-			return nil, fmt.Errorf("ResourceID mismatch, expected %s, got %s", request.ResourceID, identity.ResourceID)
+			return nil, fmt.Errorf("resourceID mismatch, expected %s, got %s", request.ResourceID, *identity.ResourceID)
 		}
 		if *identity.TenantID == "" {
 			*identity.TenantID = request.TenantID
