@@ -32,9 +32,11 @@ type swaggerMSIClient interface {
 
 var _ swaggerMSIClient = &swagger.ManagedIdentityDataPlaneAPIClient{}
 
-// Errors
 var (
-	errInvalidRequest = fmt.Errorf("invalid request")
+	errExpectedOneMSI     = fmt.Errorf("expected one user-assigned managed identity")
+	errExpectedNonNilMSI  = fmt.Errorf("expected non-nil user-assigned managed identity")
+	errInvalidRequest     = fmt.Errorf("invalid request")
+	errResourceIDMismatch = fmt.Errorf("resource ID mismatch")
 )
 
 // TODO - Add parameter to specify module name in azcore.NewClient()
@@ -74,24 +76,28 @@ func (c *ManagedIdentityClient) GetUserAssignedMSI(ctx context.Context, request 
 		return nil, err
 	}
 
+	// GetCreds can return multiple identities, but we only expect one
+	// Return if we find more than one so we don't use an identity we are not suppose to use
 	if len(creds.ExplicitIdentities) != 1 {
-		return nil, fmt.Errorf("expected one user-assigned managed identity, found %d", len(creds.ExplicitIdentities))
+		return nil, fmt.Errorf("%w, found %d", errExpectedOneMSI, len(creds.ExplicitIdentities))
 	}
 
-	for _, identity := range creds.ExplicitIdentities {
-		if *identity.ResourceID != request.ResourceID {
-			return nil, fmt.Errorf("resourceID mismatch, expected %s, got %s", request.ResourceID, *identity.ResourceID)
-		}
-		if *identity.TenantID == "" {
-			*identity.TenantID = request.TenantID
-		}
+	uaMSI := creds.ExplicitIdentities[0]
+	if uaMSI == nil {
+		return nil, errExpectedNonNilMSI
+	}
+	if *uaMSI.ResourceID != request.ResourceID {
+		return nil, fmt.Errorf("%w, expected %s, got %s", errResourceIDMismatch, request.ResourceID, *uaMSI.ResourceID)
+	}
+	if *uaMSI.TenantID == "" {
+		*uaMSI.TenantID = request.TenantID
 	}
 
 	credObject := &CredentialsObject{
 		CredentialsObject: creds.CredentialsObject,
 	}
 
-	return credObject, err
+	return credObject, nil
 }
 
 func getMsiHost(cloud string) string {
