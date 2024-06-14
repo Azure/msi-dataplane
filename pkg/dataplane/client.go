@@ -26,7 +26,7 @@ const (
 )
 
 type ManagedIdentityClient struct {
-	swaggerClient swaggerMSIClient
+	swaggerClient msiClient
 }
 
 type UserAssignedMSIRequest struct {
@@ -35,11 +35,11 @@ type UserAssignedMSIRequest struct {
 	TenantID    string `validate:"required,uuid"`
 }
 
-type swaggerMSIClient interface {
+type msiClient interface {
 	Getcreds(ctx context.Context, credRequest swagger.CredRequestDefinition, options *swagger.ManagedIdentityDataPlaneAPIClientGetcredsOptions) (swagger.ManagedIdentityDataPlaneAPIClientGetcredsResponse, error)
 }
 
-var _ swaggerMSIClient = &swagger.ManagedIdentityDataPlaneAPIClient{}
+var _ msiClient = &swagger.ManagedIdentityDataPlaneAPIClient{}
 
 var (
 	// Errors returned by the Managed Identity Dataplane API client
