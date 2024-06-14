@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 	"reflect"
-	"regexp"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore/arm"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/runtime"
 	"github.com/Azure/msi-dataplane/internal/swagger"
@@ -18,9 +18,6 @@ import (
 const (
 	// TODO - Tie the module version to update automatically with new releases
 	moduleVersion = "v0.0.1"
-
-	// This regular expression is used to validate the resource ID
-	resourceIDRegex = `^/subscriptions/[a-z0-9\-]+/resourceGroups/[a-z0-9\-]+/providers/Microsoft\.ManagedIdentity/userAssignedIdentities/[A-Za-z0-9\-]+$`
 
 	resourceIDTag = "resource_id"
 )
@@ -49,9 +46,6 @@ var (
 	errNilMSI             = fmt.Errorf("expected non-nil user-assigned managed identity")
 	errNotOneMSI          = fmt.Errorf("expected one user-assigned managed identity")
 	errResourceIDMismatch = fmt.Errorf("resource ID mismatch")
-
-	// Regex for resource ID validation
-	resourceIDRegexp = regexp.MustCompile(resourceIDRegex)
 )
 
 // TODO - Add parameter to specify module name in azcore.NewClient()
@@ -116,7 +110,20 @@ func (c *ManagedIdentityClient) GetUserAssignedMSI(ctx context.Context, request 
 
 func validateResourceID(fl validator.FieldLevel) bool {
 	resourceID := fl.Field().String()
-	return resourceIDRegexp.MatchString(resourceID)
+	_, err := arm.ParseResourceID(resourceID)
+	if err != nil {
+		return false
+	}
+
+	resourceType, err := arm.ParseResourceType(resourceID)
+	if err != nil {
+		return false
+	}
+
+	const expectedNamespace = "Microsoft.ManagedIdentity"
+	const expectedResourceType = "userAssignedIdentities"
+
+	return resourceType.Namespace == expectedNamespace && resourceType.Type == expectedResourceType
 }
 
 func validateUserAssignedMSI(identity *swagger.NestedCredentialsObject, resourceID string) error {
