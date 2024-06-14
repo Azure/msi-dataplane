@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"regexp"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
@@ -14,16 +15,23 @@ import (
 
 //go:generate /bin/bash -c "../../hack/mockgen.sh mock_swagger_client/zz_generated_mocks.go client.go"
 
-// TODO - Tie the module version to update automatically with new releases
-const moduleVersion = "v0.0.1"
+const (
+	// TODO - Tie the module version to update automatically with new releases
+	moduleVersion = "v0.0.1"
+
+	// This regular expression is used to validate the resource ID
+	resourceIDRegex = `^/subscriptions/[a-z0-9\-]+/resourceGroups/[a-z0-9\-]+/providers/Microsoft\.ManagedIdentity/userAssignedIdentities/[A-Za-z0-9\-]+$`
+
+	resourceIDTag = "resource_id"
+)
 
 type ManagedIdentityClient struct {
 	swaggerClient swaggerMSIClient
 }
 
 type UserAssignedMSIRequest struct {
-	IdentityURL string `validate:"required,url"`
-	ResourceID  string `validate:"required"`
+	IdentityURL string `validate:"required,http_url"`
+	ResourceID  string `validate:"required,resource_id"`
 	TenantID    string `validate:"required,uuid"`
 }
 
@@ -34,12 +42,16 @@ type swaggerMSIClient interface {
 var _ swaggerMSIClient = &swagger.ManagedIdentityDataPlaneAPIClient{}
 
 var (
+	// Errors returned by the Managed Identity Dataplane API client
 	errGetCreds           = fmt.Errorf("failed to get credentials")
 	errInvalidRequest     = fmt.Errorf("invalid request")
 	errNilField           = fmt.Errorf("expected non-nil field in user-assigned managed identity")
 	errNilMSI             = fmt.Errorf("expected non-nil user-assigned managed identity")
 	errNotOneMSI          = fmt.Errorf("expected one user-assigned managed identity")
 	errResourceIDMismatch = fmt.Errorf("resource ID mismatch")
+
+	// Regex for resource ID validation
+	resourceIDRegexp = regexp.MustCompile(resourceIDRegex)
 )
 
 // TODO - Add parameter to specify module name in azcore.NewClient()
@@ -65,6 +77,7 @@ func NewClient(aud, cloud string, cred azcore.TokenCredential) (*ManagedIdentity
 
 func (c *ManagedIdentityClient) GetUserAssignedMSI(ctx context.Context, request UserAssignedMSIRequest) (*CredentialsObject, error) {
 	validate := validator.New(validator.WithRequiredStructEnabled())
+	validate.RegisterValidation(resourceIDTag, validateResourceID)
 	if err := validate.Struct(request); err != nil {
 		return nil, fmt.Errorf("%w: %w", errInvalidRequest, err)
 	}
@@ -99,6 +112,11 @@ func (c *ManagedIdentityClient) GetUserAssignedMSI(ctx context.Context, request 
 	}
 
 	return &CredentialsObject{CredentialsObject: creds.CredentialsObject}, nil
+}
+
+func validateResourceID(fl validator.FieldLevel) bool {
+	resourceID := fl.Field().String()
+	return resourceIDRegexp.MatchString(resourceID)
 }
 
 func validateUserAssignedMSI(identity *swagger.NestedCredentialsObject, resourceID string) error {

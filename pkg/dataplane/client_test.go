@@ -146,8 +146,6 @@ func TestGetUserAssignedMSI(t *testing.T) {
 func TestValidateUserAssignedMSI(t *testing.T) {
 	t.Parallel()
 
-	const identityResourceID = "resourceID"
-
 	testCases := []struct {
 		name        string
 		getMSI      func() *swagger.NestedCredentialsObject
@@ -176,8 +174,8 @@ func TestValidateUserAssignedMSI(t *testing.T) {
 		},
 		{
 			name:        "success",
-			getMSI:      func() *swagger.NestedCredentialsObject { return getTestMSI(identityResourceID) },
-			resourceID:  identityResourceID,
+			getMSI:      func() *swagger.NestedCredentialsObject { return getTestMSI(validResourceID) },
+			resourceID:  validResourceID,
 			expectedErr: nil,
 		},
 	}
