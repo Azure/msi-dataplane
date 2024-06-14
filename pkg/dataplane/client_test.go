@@ -30,7 +30,7 @@ func TestNewClient(t *testing.T) {
 	// Create a new client
 	client, err := NewClient(aud, cloud, cred)
 	if err != nil {
-		t.Fatalf("Failed to create a new client: %v", err)
+		t.Fatalf("Failed to create a new client: %s", err)
 	}
 
 	// Check if the client is not nil
