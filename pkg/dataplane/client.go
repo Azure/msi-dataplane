@@ -99,7 +99,7 @@ func (c *ManagedIdentityClient) GetUserAssignedMSI(ctx context.Context, request 
 	// an identitiy that wasn't requested.
 	//
 	if len(creds.ExplicitIdentities) != 1 {
-		return nil, fmt.Errorf("%w, found %d", errNotOneMSI, len(creds.ExplicitIdentities))
+		return nil, fmt.Errorf("%w, found %d identities instead", errNotOneMSI, len(creds.ExplicitIdentities))
 	}
 
 	if err := validateUserAssignedMSI(creds.ExplicitIdentities[0], request.ResourceID); err != nil {
