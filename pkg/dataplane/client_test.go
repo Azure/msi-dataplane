@@ -67,6 +67,12 @@ func TestGetUserAssignedMSI(t *testing.T) {
 			expectedErr: errInvalidRequest,
 		},
 		{
+			name:        "ResourceID not valid",
+			goMockCall:  func(swaggerClient *mock.MockswaggerMSIClient) {},
+			request:     UserAssignedMSIRequest{IdentityURL: validIdentityURL, ResourceID: "bogus", TenantID: validTenantID},
+			expectedErr: errInvalidRequest,
+		},
+		{
 			name:        "TenantID not specified",
 			goMockCall:  func(swaggerClient *mock.MockswaggerMSIClient) {},
 			request:     UserAssignedMSIRequest{IdentityURL: validIdentityURL, ResourceID: validResourceID},
