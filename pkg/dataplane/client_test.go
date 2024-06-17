@@ -166,40 +166,45 @@ func TestGetUserAssignedMSI(t *testing.T) {
 	}
 }
 
-/*
 func TestValidateUserAssignedMSIs(t *testing.T) {
 	t.Parallel()
 
 	testCases := []struct {
 		name        string
-		getMSI      func() *swagger.NestedCredentialsObject
-		resourceID  string
+		getMSI      func() []*swagger.NestedCredentialsObject
+		resourceIDs []string
 		expectedErr error
 	}{
 		{
-			name:        "nil identity",
-			getMSI:      func() *swagger.NestedCredentialsObject { return nil },
-			resourceID:  "someResourceID",
-			expectedErr: errNilMSI,
+			name:        "nil credential object slice",
+			getMSI:      func() []*swagger.NestedCredentialsObject { return nil },
+			resourceIDs: []string{"someResourceID"},
+			expectedErr: errNumberOfMSIs,
 		},
 		{
-			name:        "nil fields",
-			getMSI:      func() *swagger.NestedCredentialsObject { return &swagger.NestedCredentialsObject{} },
-			resourceID:  "someResourceID",
+			name: "nil fields",
+			getMSI: func() []*swagger.NestedCredentialsObject {
+				return []*swagger.NestedCredentialsObject{&swagger.NestedCredentialsObject{}}
+			},
+			resourceIDs: []string{"someResourceID"},
 			expectedErr: errNilField,
 		},
 		{
 			name: "mismatched resourceID",
-			getMSI: func() *swagger.NestedCredentialsObject {
-				return getTestMSI("bogus")
+			getMSI: func() []*swagger.NestedCredentialsObject {
+				testMSI := getTestMSI("bogus")
+				return []*swagger.NestedCredentialsObject{testMSI}
 			},
-			resourceID:  "someResourceID",
+			resourceIDs: []string{"someResourceID"},
 			expectedErr: errResourceIDMismatch,
 		},
 		{
-			name:        "success",
-			getMSI:      func() *swagger.NestedCredentialsObject { return getTestMSI(validResourceID) },
-			resourceID:  validResourceID,
+			name: "success",
+			getMSI: func() []*swagger.NestedCredentialsObject {
+				testMSI := getTestMSI(validResourceID)
+				return []*swagger.NestedCredentialsObject{testMSI}
+			},
+			resourceIDs: []string{validResourceID},
 			expectedErr: nil,
 		},
 	}
@@ -209,13 +214,12 @@ func TestValidateUserAssignedMSIs(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			msi := tc.getMSI()
-			if err := validateUserAssignedMSIs(msi, tc.resourceID); !errors.Is(err, tc.expectedErr) {
+			if err := validateUserAssignedMSIs(msi, tc.resourceIDs); !errors.Is(err, tc.expectedErr) {
 				t.Errorf("expected error: `%s` but got: `%s`", tc.expectedErr, err)
 			}
 		})
 	}
 }
-*/
 
 func getTestMSI(placeHolder string) *swagger.NestedCredentialsObject {
 	return &swagger.NestedCredentialsObject{

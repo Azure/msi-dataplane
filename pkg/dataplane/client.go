@@ -92,10 +92,6 @@ func (c *ManagedIdentityClient) GetUserAssignedMSI(ctx context.Context, request 
 		return nil, fmt.Errorf("%w: %w", errGetCreds, err)
 	}
 
-	if len(creds.ExplicitIdentities) != len(request.ResourceIDs) {
-		return nil, fmt.Errorf("%w, found %d identities instead", errNumberOfMSIs, len(creds.ExplicitIdentities))
-	}
-
 	if err := validateUserAssignedMSIs(creds.ExplicitIdentities, request.ResourceIDs); err != nil {
 		return nil, err
 	}
@@ -156,6 +152,10 @@ func isUserAssignedMSIResource(resourceID string) bool {
 }
 
 func validateUserAssignedMSIs(identities []*swagger.NestedCredentialsObject, resourceIDs []string) error {
+	if len(identities) != len(resourceIDs) {
+		return fmt.Errorf("%w, found %d identities instead", errNumberOfMSIs, len(identities))
+	}
+
 	resourceIDMap := make(map[string]interface{})
 	for _, identity := range identities {
 		if identity == nil {
