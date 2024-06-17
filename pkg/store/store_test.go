@@ -2,6 +2,9 @@
 
 package store
 
+// TODO - Fix race conditions via shared mock controller
+// See client_test.go in dataplane package for an example of how to fix this
+
 import (
 	"context"
 	"errors"

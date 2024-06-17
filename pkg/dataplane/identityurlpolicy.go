@@ -31,7 +31,7 @@ func (t *injectIdentityURLPolicy) Do(req *policy.Request) (*http.Response, error
 		return nil, errAPIVersion
 	}
 
-	rawIdentityURL, ok := req.Raw().Context().Value(IdentityURLKey).(string)
+	rawIdentityURL, ok := req.Raw().Context().Value(identityURLKey).(string)
 	if !ok {
 		return nil, errInvalidCtxValueType
 	}

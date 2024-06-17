@@ -107,5 +107,5 @@ func TestInjectURLPolicy(t *testing.T) {
 
 func buildCtx(value any) context.Context {
 	ctx := context.Background()
-	return context.WithValue(ctx, IdentityURLKey, value)
+	return context.WithValue(ctx, identityURLKey, value)
 }
