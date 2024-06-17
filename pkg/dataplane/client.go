@@ -20,7 +20,7 @@ const (
 	// TODO - Tie the module version to update automatically with new releases
 	moduleVersion = "v0.0.1"
 
-	resourceIDsTag = "resource_ids"
+	resourceIDTag = "resource_id"
 )
 
 type ManagedIdentityClient struct {
@@ -29,7 +29,7 @@ type ManagedIdentityClient struct {
 
 type UserAssignedMSIRequest struct {
 	IdentityURL string   `validate:"required,http_url"`
-	ResourceIDs []string `validate:"required,resource_ids"`
+	ResourceIDs []string `validate:"required,resource_id"`
 	TenantID    string   `validate:"required,uuid"`
 }
 
@@ -72,7 +72,7 @@ func NewClient(aud, cloud string, cred azcore.TokenCredential) (*ManagedIdentity
 
 func (c *ManagedIdentityClient) GetUserAssignedMSI(ctx context.Context, request UserAssignedMSIRequest) (*CredentialsObject, error) {
 	validate := validator.New(validator.WithRequiredStructEnabled())
-	validate.RegisterValidation(resourceIDsTag, validateResourceIDs)
+	validate.RegisterValidation(resourceIDTag, validateResourceIDTag)
 	if err := validate.Struct(request); err != nil {
 		return nil, fmt.Errorf("%w: %w", errInvalidRequest, err)
 	}
@@ -106,7 +106,7 @@ func (c *ManagedIdentityClient) GetUserAssignedMSI(ctx context.Context, request 
 	return &CredentialsObject{CredentialsObject: creds.CredentialsObject}, nil
 }
 
-func validateResourceIDs(fl validator.FieldLevel) bool {
+func validateResourceIDTag(fl validator.FieldLevel) bool {
 	field := fl.Field()
 
 	// Confirm we have a slice of strings
