@@ -20,7 +20,7 @@ const (
 	// TODO - Tie the module version to update automatically with new releases
 	moduleVersion = "v0.0.1"
 
-	resourceIDTag = "resource_id"
+	resourceIDsTag = "resource_ids"
 )
 
 type ManagedIdentityClient struct {
@@ -29,7 +29,7 @@ type ManagedIdentityClient struct {
 
 type UserAssignedMSIRequest struct {
 	IdentityURL string   `validate:"required,http_url"`
-	ResourceIDs []string `validate:"required,resource_id"`
+	ResourceIDs []string `validate:"required,resource_ids"`
 	TenantID    string   `validate:"required,uuid"`
 }
 
@@ -72,7 +72,7 @@ func NewClient(aud, cloud string, cred azcore.TokenCredential) (*ManagedIdentity
 
 func (c *ManagedIdentityClient) GetUserAssignedMSI(ctx context.Context, request UserAssignedMSIRequest) (*CredentialsObject, error) {
 	validate := validator.New(validator.WithRequiredStructEnabled())
-	validate.RegisterValidation(resourceIDTag, validateResourceIDTag)
+	validate.RegisterValidation(resourceIDsTag, validateResourceIDs)
 	if err := validate.Struct(request); err != nil {
 		return nil, fmt.Errorf("%w: %w", errInvalidRequest, err)
 	}
@@ -92,7 +92,7 @@ func (c *ManagedIdentityClient) GetUserAssignedMSI(ctx context.Context, request 
 		return nil, fmt.Errorf("%w: %w", errGetCreds, err)
 	}
 
-	if err := validateUserAssignedMSI(creds.ExplicitIdentities, request.ResourceIDs); err != nil {
+	if err := validateUserAssignedMSIs(creds.ExplicitIdentities, request.ResourceIDs); err != nil {
 		return nil, err
 	}
 
@@ -106,7 +106,7 @@ func (c *ManagedIdentityClient) GetUserAssignedMSI(ctx context.Context, request 
 	return &CredentialsObject{CredentialsObject: creds.CredentialsObject}, nil
 }
 
-func validateResourceIDTag(fl validator.FieldLevel) bool {
+func validateResourceIDs(fl validator.FieldLevel) bool {
 	field := fl.Field()
 
 	// Confirm we have a slice of strings
@@ -151,7 +151,7 @@ func isUserAssignedMSIResource(resourceID string) bool {
 	return resourceType.Namespace == expectedNamespace && resourceType.Type == expectedResourceType
 }
 
-func validateUserAssignedMSI(identities []*swagger.NestedCredentialsObject, resourceIDs []string) error {
+func validateUserAssignedMSIs(identities []*swagger.NestedCredentialsObject, resourceIDs []string) error {
 	if len(identities) != len(resourceIDs) {
 		return fmt.Errorf("%w, found %d identities instead", errNumberOfMSIs, len(identities))
 	}

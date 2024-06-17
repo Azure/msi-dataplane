@@ -216,7 +216,7 @@ func TestValidateUserAssignedMSI(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			msi := tc.getMSI()
-			if err := validateUserAssignedMSI(msi, tc.resourceIDs); !errors.Is(err, tc.expectedErr) {
+			if err := validateUserAssignedMSIs(msi, tc.resourceIDs); !errors.Is(err, tc.expectedErr) {
 				t.Errorf("expected error: `%s` but got: `%s`", tc.expectedErr, err)
 			}
 		})
