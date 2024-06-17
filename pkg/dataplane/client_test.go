@@ -166,7 +166,7 @@ func TestGetUserAssignedMSI(t *testing.T) {
 	}
 }
 
-func TestValidateUserAssignedMSIs(t *testing.T) {
+func TestValidateUserAssignedMSI(t *testing.T) {
 	t.Parallel()
 
 	testCases := []struct {
@@ -214,7 +214,7 @@ func TestValidateUserAssignedMSIs(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			msi := tc.getMSI()
-			if err := validateUserAssignedMSIs(msi, tc.resourceIDs); !errors.Is(err, tc.expectedErr) {
+			if err := validateUserAssignedMSI(msi, tc.resourceIDs); !errors.Is(err, tc.expectedErr) {
 				t.Errorf("expected error: `%s` but got: `%s`", tc.expectedErr, err)
 			}
 		})
