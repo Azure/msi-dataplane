@@ -27,9 +27,9 @@ type ManagedIdentityClient struct {
 }
 
 type UserAssignedMSIRequest struct {
-	IdentityURL string `validate:"required,http_url"`
-	ResourceID  string `validate:"required,resource_id"`
-	TenantID    string `validate:"required,uuid"`
+	IdentityURL string   `validate:"required,http_url"`
+	ResourceID  []string `validate:"required,resource_id"`
+	TenantID    string   `validate:"required,uuid"`
 }
 
 type msiClient interface {
@@ -109,7 +109,34 @@ func (c *ManagedIdentityClient) GetUserAssignedMSI(ctx context.Context, request 
 }
 
 func validateResourceID(fl validator.FieldLevel) bool {
-	resourceID := fl.Field().String()
+	field := fl.Field()
+
+	// Confirm we have a slice of strings
+	if field.Kind() != reflect.Slice {
+		return false
+	}
+
+	if field.Type().Elem().Kind() != reflect.String {
+		return false
+	}
+
+	// Check we have at least one element
+	if field.Len() < 1 {
+		return false
+	}
+
+	// Check that all elements are valid resource IDs
+	for i := 0; i < field.Len(); i++ {
+		resourceID := field.Index(i).String()
+		if !isUserAssignedMSIResource(resourceID) {
+			return false
+		}
+	}
+
+	return true
+}
+
+func isUserAssignedMSIResource(resourceID string) bool {
 	_, err := arm.ParseResourceID(resourceID)
 	if err != nil {
 		return false
