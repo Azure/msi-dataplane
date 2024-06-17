@@ -2,6 +2,7 @@ package dataplane
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"reflect"
 
@@ -19,7 +20,7 @@ const (
 	// TODO - Tie the module version to update automatically with new releases
 	moduleVersion = "v0.0.1"
 
-	resourceIDTag = "resource_id"
+	resourceIDsTag = "resource_ids"
 )
 
 type ManagedIdentityClient struct {
@@ -28,7 +29,7 @@ type ManagedIdentityClient struct {
 
 type UserAssignedMSIRequest struct {
 	IdentityURL string   `validate:"required,http_url"`
-	ResourceID  []string `validate:"required,resource_id"`
+	ResourceIDs []string `validate:"required,resource_ids"`
 	TenantID    string   `validate:"required,uuid"`
 }
 
@@ -40,12 +41,12 @@ var _ msiClient = &swagger.ManagedIdentityDataPlaneAPIClient{}
 
 var (
 	// Errors returned by the Managed Identity Dataplane API client
-	errGetCreds           = fmt.Errorf("failed to get credentials")
-	errInvalidRequest     = fmt.Errorf("invalid request")
-	errNilField           = fmt.Errorf("expected non-nil field in user-assigned managed identity")
-	errNilMSI             = fmt.Errorf("expected non-nil user-assigned managed identity")
-	errNotOneMSI          = fmt.Errorf("expected one user-assigned managed identity")
-	errResourceIDMismatch = fmt.Errorf("resource ID mismatch")
+	errGetCreds           = errors.New("failed to get credentials")
+	errInvalidRequest     = errors.New("invalid request")
+	errNilField           = errors.New("expected non-nil field in user-assigned managed identity")
+	errNilMSI             = errors.New("expected non-nil user-assigned managed identity")
+	errExpected           = errors.New("expected one user-assigned managed identity")
+	errResourceIDMismatch = errors.New("resource ID mismatch")
 )
 
 // TODO - Add parameter to specify module name in azcore.NewClient()
@@ -71,7 +72,7 @@ func NewClient(aud, cloud string, cred azcore.TokenCredential) (*ManagedIdentity
 
 func (c *ManagedIdentityClient) GetUserAssignedMSI(ctx context.Context, request UserAssignedMSIRequest) (*CredentialsObject, error) {
 	validate := validator.New(validator.WithRequiredStructEnabled())
-	validate.RegisterValidation(resourceIDTag, validateResourceID)
+	validate.RegisterValidation(resourceIDsTag, validateResourceIDs)
 	if err := validate.Struct(request); err != nil {
 		return nil, fmt.Errorf("%w: %w", errInvalidRequest, err)
 	}
@@ -86,13 +87,7 @@ func (c *ManagedIdentityClient) GetUserAssignedMSI(ctx context.Context, request 
 		return nil, fmt.Errorf("%w: %w", errGetCreds, err)
 	}
 
-	//
-	// GetCreds can return multiple identities. We expect one. Return if we don't find one.
-	//
-	// If mulitple identities are found, we return because we don't want to accidentally process
-	// an identitiy that wasn't requested.
-	//
-	if len(creds.ExplicitIdentities) != 1 {
+	if len(creds.ExplicitIdentities) != len(request.ResourceID) {
 		return nil, fmt.Errorf("%w, found %d identities instead", errNotOneMSI, len(creds.ExplicitIdentities))
 	}
 
@@ -108,7 +103,7 @@ func (c *ManagedIdentityClient) GetUserAssignedMSI(ctx context.Context, request 
 	return &CredentialsObject{CredentialsObject: creds.CredentialsObject}, nil
 }
 
-func validateResourceID(fl validator.FieldLevel) bool {
+func validateResourceIDs(fl validator.FieldLevel) bool {
 	field := fl.Field()
 
 	// Confirm we have a slice of strings
