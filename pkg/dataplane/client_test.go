@@ -37,7 +37,7 @@ func TestNewClient(t *testing.T) {
 	}
 }
 
-func TestGetUserAssignedMSIs(t *testing.T) {
+func TestGetUserAssignedMSI(t *testing.T) {
 	t.Parallel()
 
 	testCases := []struct {
