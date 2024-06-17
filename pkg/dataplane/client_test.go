@@ -39,7 +39,7 @@ func TestNewClient(t *testing.T) {
 	}
 }
 
-func TestGetUserAssignedMSI(t *testing.T) {
+func TestGetUserAssignedIdentities(t *testing.T) {
 	t.Parallel()
 
 	testCases := []struct {
@@ -161,7 +161,7 @@ func TestGetUserAssignedMSI(t *testing.T) {
 			tc.goMockCall(swaggerClient)
 
 			msiClient := &ManagedIdentityClient{swaggerClient: swaggerClient}
-			if _, err := msiClient.GetUserAssignedMSI(context.Background(), tc.request); !errors.Is(err, tc.expectedErr) {
+			if _, err := msiClient.GetUserAssignedIdentities(context.Background(), tc.request); !errors.Is(err, tc.expectedErr) {
 				t.Errorf("expected error: `%s` but got: `%s`", tc.expectedErr, err)
 			}
 		})
