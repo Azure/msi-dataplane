@@ -99,6 +99,18 @@ func TestGetUserAssignedMSI(t *testing.T) {
 			expectedErr: errNumberOfMSIs,
 		},
 		{
+			name: "Mismatched number of MSIs",
+			goMockCall: func(swaggerClient *mock.MockswaggerMSIClient) {
+				uaMSI := getTestMSI("bogus")
+				identities := []*swagger.NestedCredentialsObject{uaMSI}
+				swaggerClient.EXPECT().Getcreds(gomock.Any(), gomock.Any(), gomock.Any()).Return(swagger.ManagedIdentityDataPlaneAPIClientGetcredsResponse{
+					CredentialsObject: swagger.CredentialsObject{ExplicitIdentities: identities},
+				}, nil)
+			},
+			request:     UserAssignedMSIRequest{IdentityURL: validIdentityURL, ResourceIDs: []string{validResourceID, validResourceID}, TenantID: validTenantID},
+			expectedErr: errNumberOfMSIs,
+		},
+		{
 			name: "Valid request - single MSI",
 			goMockCall: func(swaggerClient *mock.MockswaggerMSIClient) {
 				resourceID := validResourceID
