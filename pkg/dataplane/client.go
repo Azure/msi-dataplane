@@ -2,6 +2,7 @@ package dataplane
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"reflect"
 
@@ -19,7 +20,7 @@ const (
 	// TODO - Tie the module version to update automatically with new releases
 	moduleVersion = "v0.0.1"
 
-	resourceIDTag = "resource_id"
+	resourceIDsTag = "resource_ids"
 )
 
 type ManagedIdentityClient struct {
@@ -27,9 +28,9 @@ type ManagedIdentityClient struct {
 }
 
 type UserAssignedMSIRequest struct {
-	IdentityURL string `validate:"required,http_url"`
-	ResourceID  string `validate:"required,resource_id"`
-	TenantID    string `validate:"required,uuid"`
+	IdentityURL string   `validate:"required,http_url"`
+	ResourceIDs []string `validate:"required,resource_ids"`
+	TenantID    string   `validate:"required,uuid"`
 }
 
 type msiClient interface {
@@ -40,12 +41,12 @@ var _ msiClient = &swagger.ManagedIdentityDataPlaneAPIClient{}
 
 var (
 	// Errors returned by the Managed Identity Dataplane API client
-	errGetCreds           = fmt.Errorf("failed to get credentials")
-	errInvalidRequest     = fmt.Errorf("invalid request")
-	errNilField           = fmt.Errorf("expected non-nil field in user-assigned managed identity")
-	errNilMSI             = fmt.Errorf("expected non-nil user-assigned managed identity")
-	errNotOneMSI          = fmt.Errorf("expected one user-assigned managed identity")
-	errResourceIDMismatch = fmt.Errorf("resource ID mismatch")
+	errGetCreds           = errors.New("failed to get credentials")
+	errInvalidRequest     = errors.New("invalid request")
+	errNilField           = errors.New("expected non-nil field in user-assigned managed identity")
+	errNilMSI             = errors.New("expected non-nil user-assigned managed identity")
+	errNumberOfMSIs       = errors.New("returned MSIs does not match number of requested MSIs")
+	errResourceIDMismatch = errors.New("requested resource ID not found in response")
 )
 
 // TODO - Add parameter to specify module name in azcore.NewClient()
@@ -69,16 +70,21 @@ func NewClient(aud, cloud string, cred azcore.TokenCredential) (*ManagedIdentity
 	return &ManagedIdentityClient{swaggerClient: swaggerClient}, nil
 }
 
-func (c *ManagedIdentityClient) GetUserAssignedMSI(ctx context.Context, request UserAssignedMSIRequest) (*CredentialsObject, error) {
+func (c *ManagedIdentityClient) GetUserAssignedIdentities(ctx context.Context, request UserAssignedMSIRequest) (*CredentialsObject, error) {
 	validate := validator.New(validator.WithRequiredStructEnabled())
-	validate.RegisterValidation(resourceIDTag, validateResourceID)
+	validate.RegisterValidation(resourceIDsTag, validateResourceIDs)
 	if err := validate.Struct(request); err != nil {
 		return nil, fmt.Errorf("%w: %w", errInvalidRequest, err)
 	}
 
+	identityIDs := make([]*string, len(request.ResourceIDs))
+	for idx, r := range request.ResourceIDs {
+		identityIDs[idx] = &r
+	}
+
 	ctx = context.WithValue(ctx, identityURLKey, request.IdentityURL)
 	credRequestDef := swagger.CredRequestDefinition{
-		IdentityIDs: []*string{&request.ResourceID},
+		IdentityIDs: identityIDs,
 	}
 
 	creds, err := c.swaggerClient.Getcreds(ctx, credRequestDef, nil)
@@ -86,30 +92,49 @@ func (c *ManagedIdentityClient) GetUserAssignedMSI(ctx context.Context, request 
 		return nil, fmt.Errorf("%w: %w", errGetCreds, err)
 	}
 
-	//
-	// GetCreds can return multiple identities. We expect one. Return if we don't find one.
-	//
-	// If mulitple identities are found, we return because we don't want to accidentally process
-	// an identitiy that wasn't requested.
-	//
-	if len(creds.ExplicitIdentities) != 1 {
-		return nil, fmt.Errorf("%w, found %d identities instead", errNotOneMSI, len(creds.ExplicitIdentities))
-	}
-
-	if err := validateUserAssignedMSI(creds.ExplicitIdentities[0], request.ResourceID); err != nil {
+	if err := validateUserAssignedMSIs(creds.ExplicitIdentities, request.ResourceIDs); err != nil {
 		return nil, err
 	}
 
 	// Tenant ID is a header passed to RP frontend, so set it here if it's not set
-	if *creds.ExplicitIdentities[0].TenantID == "" {
-		*creds.ExplicitIdentities[0].TenantID = request.TenantID
+	for _, identity := range creds.ExplicitIdentities {
+		if *identity.TenantID == "" {
+			*identity.TenantID = request.TenantID
+		}
 	}
 
 	return &CredentialsObject{CredentialsObject: creds.CredentialsObject}, nil
 }
 
-func validateResourceID(fl validator.FieldLevel) bool {
-	resourceID := fl.Field().String()
+func validateResourceIDs(fl validator.FieldLevel) bool {
+	field := fl.Field()
+
+	// Confirm we have a slice of strings
+	if field.Kind() != reflect.Slice {
+		return false
+	}
+
+	if field.Type().Elem().Kind() != reflect.String {
+		return false
+	}
+
+	// Check we have at least one element
+	if field.Len() < 1 {
+		return false
+	}
+
+	// Check that all elements are valid resource IDs
+	for i := 0; i < field.Len(); i++ {
+		resourceID := field.Index(i).String()
+		if !isUserAssignedMSIResource(resourceID) {
+			return false
+		}
+	}
+
+	return true
+}
+
+func isUserAssignedMSIResource(resourceID string) bool {
 	_, err := arm.ParseResourceID(resourceID)
 	if err != nil {
 		return false
@@ -126,20 +151,30 @@ func validateResourceID(fl validator.FieldLevel) bool {
 	return resourceType.Namespace == expectedNamespace && resourceType.Type == expectedResourceType
 }
 
-func validateUserAssignedMSI(identity *swagger.NestedCredentialsObject, resourceID string) error {
-	if identity == nil {
-		return errNilMSI
+func validateUserAssignedMSIs(identities []*swagger.NestedCredentialsObject, resourceIDs []string) error {
+	if len(identities) != len(resourceIDs) {
+		return fmt.Errorf("%w, found %d identities instead", errNumberOfMSIs, len(identities))
 	}
 
-	v := reflect.ValueOf(*identity)
-	for i := 0; i < v.NumField(); i++ {
-		if v.Field(i).IsNil() {
-			return fmt.Errorf("%w, field %s", errNilField, v.Type().Field(i).Name)
+	resourceIDMap := make(map[string]interface{})
+	for _, identity := range identities {
+		if identity == nil {
+			return errNilMSI
 		}
+
+		v := reflect.ValueOf(*identity)
+		for i := 0; i < v.NumField(); i++ {
+			if v.Field(i).IsNil() {
+				return fmt.Errorf("%w, field %s", errNilField, v.Type().Field(i).Name)
+			}
+		}
+		resourceIDMap[*identity.ResourceID] = true
 	}
 
-	if *identity.ResourceID != resourceID {
-		return fmt.Errorf("%w, expected %s, got %s", errResourceIDMismatch, resourceID, *identity.ResourceID)
+	for _, resourceID := range resourceIDs {
+		if _, ok := resourceIDMap[resourceID]; !ok {
+			return fmt.Errorf("%w, resource ID %s", errResourceIDMismatch, resourceID)
+		}
 	}
 
 	return nil

@@ -39,7 +39,7 @@ func TestNewClient(t *testing.T) {
 	}
 }
 
-func TestGetUserAssignedMSI(t *testing.T) {
+func TestGetUserAssignedIdentities(t *testing.T) {
 	t.Parallel()
 
 	testCases := []struct {
@@ -51,13 +51,13 @@ func TestGetUserAssignedMSI(t *testing.T) {
 		{
 			name:        "IdenityURL not specified",
 			goMockCall:  func(swaggerClient *mock.MockswaggerMSIClient) {},
-			request:     UserAssignedMSIRequest{ResourceID: validResourceID, TenantID: validTenantID},
+			request:     UserAssignedMSIRequest{ResourceIDs: []string{validResourceID}, TenantID: validTenantID},
 			expectedErr: errInvalidRequest,
 		},
 		{
 			name:        "IdenityURL not a URL",
 			goMockCall:  func(swaggerClient *mock.MockswaggerMSIClient) {},
-			request:     UserAssignedMSIRequest{IdentityURL: "bogus", ResourceID: validResourceID, TenantID: validTenantID},
+			request:     UserAssignedMSIRequest{IdentityURL: "bogus", ResourceIDs: []string{validResourceID}, TenantID: validTenantID},
 			expectedErr: errInvalidRequest,
 		},
 		{
@@ -69,19 +69,19 @@ func TestGetUserAssignedMSI(t *testing.T) {
 		{
 			name:        "ResourceID not valid",
 			goMockCall:  func(swaggerClient *mock.MockswaggerMSIClient) {},
-			request:     UserAssignedMSIRequest{IdentityURL: validIdentityURL, ResourceID: "bogus", TenantID: validTenantID},
+			request:     UserAssignedMSIRequest{IdentityURL: validIdentityURL, ResourceIDs: []string{"bogus"}, TenantID: validTenantID},
 			expectedErr: errInvalidRequest,
 		},
 		{
 			name:        "TenantID not specified",
 			goMockCall:  func(swaggerClient *mock.MockswaggerMSIClient) {},
-			request:     UserAssignedMSIRequest{IdentityURL: validIdentityURL, ResourceID: validResourceID},
+			request:     UserAssignedMSIRequest{IdentityURL: validIdentityURL, ResourceIDs: []string{validResourceID}},
 			expectedErr: errInvalidRequest,
 		},
 		{
 			name:        "TenantID not a UUID",
 			goMockCall:  func(swaggerClient *mock.MockswaggerMSIClient) {},
-			request:     UserAssignedMSIRequest{IdentityURL: validIdentityURL, ResourceID: validResourceID, TenantID: "bogus"},
+			request:     UserAssignedMSIRequest{IdentityURL: validIdentityURL, ResourceIDs: []string{validResourceID}, TenantID: "bogus"},
 			expectedErr: errInvalidRequest,
 		},
 		{
@@ -89,7 +89,7 @@ func TestGetUserAssignedMSI(t *testing.T) {
 			goMockCall: func(swaggerClient *mock.MockswaggerMSIClient) {
 				swaggerClient.EXPECT().Getcreds(gomock.Any(), gomock.Any(), gomock.Any()).Return(swagger.ManagedIdentityDataPlaneAPIClientGetcredsResponse{}, errors.New("bogus"))
 			},
-			request:     UserAssignedMSIRequest{IdentityURL: validIdentityURL, ResourceID: validResourceID, TenantID: validTenantID},
+			request:     UserAssignedMSIRequest{IdentityURL: validIdentityURL, ResourceIDs: []string{validResourceID}, TenantID: validTenantID},
 			expectedErr: errGetCreds,
 		},
 		{
@@ -97,22 +97,23 @@ func TestGetUserAssignedMSI(t *testing.T) {
 			goMockCall: func(swaggerClient *mock.MockswaggerMSIClient) {
 				swaggerClient.EXPECT().Getcreds(gomock.Any(), gomock.Any(), gomock.Any()).Return(swagger.ManagedIdentityDataPlaneAPIClientGetcredsResponse{}, nil)
 			},
-			request:     UserAssignedMSIRequest{IdentityURL: validIdentityURL, ResourceID: validResourceID, TenantID: validTenantID},
-			expectedErr: errNotOneMSI,
+			request:     UserAssignedMSIRequest{IdentityURL: validIdentityURL, ResourceIDs: []string{validResourceID}, TenantID: validTenantID},
+			expectedErr: errNumberOfMSIs,
 		},
 		{
-			name: "Multiple MSIs returned",
+			name: "Mismatched number of MSIs",
 			goMockCall: func(swaggerClient *mock.MockswaggerMSIClient) {
-				identities := []*swagger.NestedCredentialsObject{nil, nil}
+				uaMSI := getTestMSI("bogus")
+				identities := []*swagger.NestedCredentialsObject{uaMSI}
 				swaggerClient.EXPECT().Getcreds(gomock.Any(), gomock.Any(), gomock.Any()).Return(swagger.ManagedIdentityDataPlaneAPIClientGetcredsResponse{
 					CredentialsObject: swagger.CredentialsObject{ExplicitIdentities: identities},
 				}, nil)
 			},
-			request:     UserAssignedMSIRequest{IdentityURL: validIdentityURL, ResourceID: validResourceID, TenantID: validTenantID},
-			expectedErr: errNotOneMSI,
+			request:     UserAssignedMSIRequest{IdentityURL: validIdentityURL, ResourceIDs: []string{validResourceID, validResourceID}, TenantID: validTenantID},
+			expectedErr: errNumberOfMSIs,
 		},
 		{
-			name: "Valid request",
+			name: "Valid request - single MSI",
 			goMockCall: func(swaggerClient *mock.MockswaggerMSIClient) {
 				resourceID := validResourceID
 				tenantID := validTenantID
@@ -126,7 +127,25 @@ func TestGetUserAssignedMSI(t *testing.T) {
 					CredentialsObject: swagger.CredentialsObject{ExplicitIdentities: identities},
 				}, nil)
 			},
-			request:     UserAssignedMSIRequest{IdentityURL: validIdentityURL, ResourceID: validResourceID, TenantID: validTenantID},
+			request:     UserAssignedMSIRequest{IdentityURL: validIdentityURL, ResourceIDs: []string{validResourceID}, TenantID: validTenantID},
+			expectedErr: nil,
+		},
+		{
+			name: "Valid request - multiple MSIs",
+			goMockCall: func(swaggerClient *mock.MockswaggerMSIClient) {
+				resourceID := validResourceID
+				tenantID := validTenantID
+
+				uaMSI := getTestMSI("bogus")
+				uaMSI.ResourceID = &resourceID
+				uaMSI.TenantID = &tenantID
+
+				identities := []*swagger.NestedCredentialsObject{uaMSI, uaMSI}
+				swaggerClient.EXPECT().Getcreds(gomock.Any(), gomock.Any(), gomock.Any()).Return(swagger.ManagedIdentityDataPlaneAPIClientGetcredsResponse{
+					CredentialsObject: swagger.CredentialsObject{ExplicitIdentities: identities},
+				}, nil)
+			},
+			request:     UserAssignedMSIRequest{IdentityURL: validIdentityURL, ResourceIDs: []string{validResourceID, validResourceID}, TenantID: validTenantID},
 			expectedErr: nil,
 		},
 	}
@@ -142,7 +161,7 @@ func TestGetUserAssignedMSI(t *testing.T) {
 			tc.goMockCall(swaggerClient)
 
 			msiClient := &ManagedIdentityClient{swaggerClient: swaggerClient}
-			if _, err := msiClient.GetUserAssignedMSI(context.Background(), tc.request); !errors.Is(err, tc.expectedErr) {
+			if _, err := msiClient.GetUserAssignedIdentities(context.Background(), tc.request); !errors.Is(err, tc.expectedErr) {
 				t.Errorf("expected error: `%s` but got: `%s`", tc.expectedErr, err)
 			}
 		})
@@ -154,34 +173,40 @@ func TestValidateUserAssignedMSI(t *testing.T) {
 
 	testCases := []struct {
 		name        string
-		getMSI      func() *swagger.NestedCredentialsObject
-		resourceID  string
+		getMSI      func() []*swagger.NestedCredentialsObject
+		resourceIDs []string
 		expectedErr error
 	}{
 		{
-			name:        "nil identity",
-			getMSI:      func() *swagger.NestedCredentialsObject { return nil },
-			resourceID:  "someResourceID",
-			expectedErr: errNilMSI,
+			name:        "nil credential object slice",
+			getMSI:      func() []*swagger.NestedCredentialsObject { return nil },
+			resourceIDs: []string{"someResourceID"},
+			expectedErr: errNumberOfMSIs,
 		},
 		{
-			name:        "nil fields",
-			getMSI:      func() *swagger.NestedCredentialsObject { return &swagger.NestedCredentialsObject{} },
-			resourceID:  "someResourceID",
+			name: "nil fields",
+			getMSI: func() []*swagger.NestedCredentialsObject {
+				return []*swagger.NestedCredentialsObject{&swagger.NestedCredentialsObject{}}
+			},
+			resourceIDs: []string{"someResourceID"},
 			expectedErr: errNilField,
 		},
 		{
 			name: "mismatched resourceID",
-			getMSI: func() *swagger.NestedCredentialsObject {
-				return getTestMSI("bogus")
+			getMSI: func() []*swagger.NestedCredentialsObject {
+				testMSI := getTestMSI("bogus")
+				return []*swagger.NestedCredentialsObject{testMSI}
 			},
-			resourceID:  "someResourceID",
+			resourceIDs: []string{"someResourceID"},
 			expectedErr: errResourceIDMismatch,
 		},
 		{
-			name:        "success",
-			getMSI:      func() *swagger.NestedCredentialsObject { return getTestMSI(validResourceID) },
-			resourceID:  validResourceID,
+			name: "success",
+			getMSI: func() []*swagger.NestedCredentialsObject {
+				testMSI := getTestMSI(validResourceID)
+				return []*swagger.NestedCredentialsObject{testMSI}
+			},
+			resourceIDs: []string{validResourceID},
 			expectedErr: nil,
 		},
 	}
@@ -191,7 +216,7 @@ func TestValidateUserAssignedMSI(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			msi := tc.getMSI()
-			if err := validateUserAssignedMSI(msi, tc.resourceID); !errors.Is(err, tc.expectedErr) {
+			if err := validateUserAssignedMSIs(msi, tc.resourceIDs); !errors.Is(err, tc.expectedErr) {
 				t.Errorf("expected error: `%s` but got: `%s`", tc.expectedErr, err)
 			}
 		})
