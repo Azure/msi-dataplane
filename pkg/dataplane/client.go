@@ -42,11 +42,10 @@ var _ msiClient = &swagger.ManagedIdentityDataPlaneAPIClient{}
 
 var (
 	// Errors returned by the Managed Identity Dataplane API client
-	errGetCreds           = errors.New("failed to get credentials")
-	errInvalidRequest     = errors.New("invalid request")
-	errNilMSI             = errors.New("expected non-nil user-assigned managed identity")
-	errNumberOfMSIs       = errors.New("returned MSIs does not match number of requested MSIs")
-	errResourceIDMismatch = errors.New("requested resource ID not found in response")
+	errGetCreds       = errors.New("failed to get credentials")
+	errInvalidRequest = errors.New("invalid request")
+	errNilMSI         = errors.New("expected non-nil user-assigned managed identity")
+	errNumberOfMSIs   = errors.New("returned MSIs does not match number of requested MSIs")
 )
 
 // TODO - Add parameter to specify module name in azcore.NewClient()
@@ -103,7 +102,8 @@ func (c *ManagedIdentityClient) GetUserAssignedIdentities(ctx context.Context, r
 		}
 	}
 
-	return &UserAssignedIdentities{CredentialsObject: {creds.CredentialsObject, cloud: c.cloud}}, nil
+	credentialsObject := CredentialsObject{CredentialsObject: creds.CredentialsObject, cloud: c.cloud}
+	return &UserAssignedIdentities{CredentialsObject: credentialsObject}, nil
 }
 
 func validateResourceIDs(fl validator.FieldLevel) bool {
