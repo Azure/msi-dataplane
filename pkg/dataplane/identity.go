@@ -13,6 +13,8 @@ import (
 )
 
 var (
+	errDecodeClientSecret = errors.New("failed to decode client secret")
+	errParseCertificate   = errors.New("failed to parse certificate")
 	errNilField           = errors.New("expected non nil field in identity")
 	errResourceIDNotFound = errors.New("resource ID not found in user-assigned managed identity	")
 )
@@ -27,7 +29,8 @@ type UserAssignedIdentities struct {
 }
 
 // swagger.Credentials object can represent either system or user-assigned managed identity
-// This method may be used by clients to check if they can use the object is a user-assigned managed identity
+// This method may be used by clients to check if they can use the object as a user-assigned managed identity
+// Ex: get credentials object from key vault store and check if it is a user-assigned managed identity to call client for object refresh.
 func (c CredentialsObject) IsUserAssigned() bool {
 	return len(c.ExplicitIdentities) > 0
 }
@@ -45,7 +48,7 @@ func (u UserAssignedIdentities) GetCredential(resourceID string) (*azidentity.Cl
 }
 
 func getClientCertificateCredential(identity swagger.NestedCredentialsObject, cloud string) (*azidentity.ClientCertificateCredential, error) {
-	// Double check no nil pointers so we don't accidentally panic
+	// Double check nil pointers so we don't panic
 	if identity.ClientID == nil {
 		return nil, fmt.Errorf("%w: clientID", errNilField)
 	}
@@ -71,11 +74,11 @@ func getClientCertificateCredential(identity swagger.NestedCredentialsObject, cl
 	// Parse the certificate and private key from the base64 encoded secret
 	pkcs12, err := base64.StdEncoding.DecodeString(*identity.ClientSecret)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %w", errDecodeClientSecret, err)
 	}
 	crt, key, err := azidentity.ParseCertificates(pkcs12, nil)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %w", errParseCertificate, err)
 	}
 
 	return azidentity.NewClientCertificateCredential(*identity.TenantID, *identity.ClientID, crt, key, opts)
