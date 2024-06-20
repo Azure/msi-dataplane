@@ -41,6 +41,8 @@ func (c CredentialsObject) IsUserAssigned() bool {
 	return len(c.ExplicitIdentities) > 0
 }
 
+// Return an AzIdentity credential for the given user-assigned identity resource ID
+// Clients can use the credential to get a token for the user-assigned identity
 func (u UserAssignedIdentities) GetCredential(resourceID string) (*azidentity.ClientCertificateCredential, error) {
 	for _, id := range u.ExplicitIdentities {
 		if id != nil && id.ResourceID != nil {
