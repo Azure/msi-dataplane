@@ -1,8 +1,6 @@
 package dataplane
 
 import (
-	"crypto/rsa"
-	"crypto/x509"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -13,7 +11,6 @@ import (
 	azcloud "github.com/Azure/azure-sdk-for-go/sdk/azcore/cloud"
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/Azure/msi-dataplane/internal/swagger"
-	"golang.org/x/crypto/pkcs12"
 )
 
 var (
@@ -21,7 +18,6 @@ var (
 	errDecodeClientSecret = errors.New("failed to decode client secret")
 	errParseCertificate   = errors.New("failed to parse certificate")
 	errNilField           = errors.New("expected non nil field in identity")
-	errNotRSAKey          = errors.New("pkcs#12 certificate must contain a RSA private key")
 	errResourceIDNotFound = errors.New("resource ID not found in user-assigned managed identity	")
 )
 
@@ -88,16 +84,11 @@ func getClientCertificateCredential(identity swagger.NestedCredentialsObject, cl
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", errDecodeClientSecret, err)
 	}
-	key, crt, err := pkcs12.Decode(decodedSecret, "")
+	crt, key, err := azidentity.ParseCertificates(decodedSecret, nil)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", errParseCertificate, err)
 	}
-	rsaKey, isRsaKey := key.(*rsa.PrivateKey)
-	if !isRsaKey {
-		return nil, errNotRSAKey
-	}
-
-	return azidentity.NewClientCertificateCredential(*identity.TenantID, *identity.ClientID, []*x509.Certificate{crt}, rsaKey, opts)
+	return azidentity.NewClientCertificateCredential(*identity.TenantID, *identity.ClientID, crt, key, opts)
 }
 
 func validateUserAssignedMSIs(identities []*swagger.NestedCredentialsObject, resourceIDs []string) error {
