@@ -10,6 +10,106 @@ import (
 	"github.com/Azure/msi-dataplane/internal/test"
 )
 
+func TestGetClientCertificateCredential(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name        string
+		identity    swagger.NestedCredentialsObject
+		cloud       string
+		expectedErr error
+	}{
+		{
+			name: "nil clientID",
+			identity: swagger.NestedCredentialsObject{
+				AuthenticationEndpoint: test.StringPtr(test.Bogus),
+				ClientSecret:           test.StringPtr(test.Bogus),
+				ClientID:               nil,
+				TenantID:               test.StringPtr(test.Bogus),
+			},
+			cloud:       AzurePublicCloud,
+			expectedErr: errNilField,
+		},
+		{
+			name: "nil tenantID",
+			identity: swagger.NestedCredentialsObject{
+				AuthenticationEndpoint: test.StringPtr(test.Bogus),
+				ClientID:               test.StringPtr(test.Bogus),
+				ClientSecret:           test.StringPtr(test.Bogus),
+				TenantID:               nil,
+			},
+			cloud:       AzurePublicCloud,
+			expectedErr: errNilField,
+		},
+		{
+			name: "nil clientSecret",
+			identity: swagger.NestedCredentialsObject{
+				AuthenticationEndpoint: test.StringPtr(test.Bogus),
+				ClientID:               test.StringPtr(test.Bogus),
+				ClientSecret:           nil,
+				TenantID:               test.StringPtr(test.Bogus),
+			},
+			cloud:       AzurePublicCloud,
+			expectedErr: errNilField,
+		},
+		{
+			name: "nil authenticationEndpoint",
+			identity: swagger.NestedCredentialsObject{
+				AuthenticationEndpoint: nil,
+				ClientID:               test.StringPtr(test.Bogus),
+				ClientSecret:           test.StringPtr(test.Bogus),
+				TenantID:               test.StringPtr(test.Bogus),
+			},
+			cloud:       AzurePublicCloud,
+			expectedErr: errNilField,
+		},
+		{
+			name: "invalid client secret causes failure to decode",
+			identity: swagger.NestedCredentialsObject{
+				AuthenticationEndpoint: test.StringPtr(test.Bogus),
+				ClientID:               test.StringPtr(test.Bogus),
+				ClientSecret:           test.StringPtr(test.Bogus),
+				TenantID:               test.StringPtr(test.Bogus),
+			},
+			cloud:       AzurePublicCloud,
+			expectedErr: errDecodeClientSecret,
+		},
+		{
+			name: "empty client secret causes failure to parse",
+			identity: swagger.NestedCredentialsObject{
+				AuthenticationEndpoint: test.StringPtr(test.Bogus),
+				ClientID:               test.StringPtr(test.Bogus),
+				ClientSecret:           test.StringPtr(""),
+				TenantID:               test.StringPtr(test.Bogus),
+			},
+			cloud:       AzurePublicCloud,
+			expectedErr: errParseCertificate,
+		},
+		{
+			name: "success",
+			identity: swagger.NestedCredentialsObject{
+				AuthenticationEndpoint: test.StringPtr("https://login.microsoftonline.com/"),
+				ClientID:               test.StringPtr(test.Bogus),
+				ClientSecret:           test.StringPtr(test.MockCertificate),
+				TenantID:               test.StringPtr(test.Bogus),
+			},
+			cloud:       AzurePublicCloud,
+			expectedErr: nil,
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			if _, err := getClientCertificateCredential(tc.identity, tc.cloud); !errors.Is(err, tc.expectedErr) {
+				t.Errorf("expected error: `%s` but got: `%s`", tc.expectedErr, err)
+			}
+		})
+	}
+
+}
+
 func TestValidateUserAssignedMSI(t *testing.T) {
 	t.Parallel()
 
