@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	azcloud "github.com/Azure/azure-sdk-for-go/sdk/azcore/cloud"
@@ -41,7 +42,7 @@ func (c CredentialsObject) IsUserAssigned() bool {
 	return len(c.ExplicitIdentities) > 0
 }
 
-// Return an AzIdentity credential for the given user-assigned identity resource ID
+// Get an AzIdentity credential for the given user-assigned identity resource ID
 // Clients can use the credential to get a token for the user-assigned identity
 func (u UserAssignedIdentities) GetCredential(resourceID string) (*azidentity.ClientCertificateCredential, error) {
 	for _, id := range u.ExplicitIdentities {
@@ -57,17 +58,20 @@ func (u UserAssignedIdentities) GetCredential(resourceID string) (*azidentity.Cl
 
 func getClientCertificateCredential(identity swagger.NestedCredentialsObject, cloud string) (*azidentity.ClientCertificateCredential, error) {
 	// Double check nil pointers so we don't panic
-	if identity.ClientID == nil {
-		return nil, fmt.Errorf("%w: clientID", errNilField)
+	fieldsToCheck := map[string]*string{
+		"clientID":               identity.ClientID,
+		"tenantID":               identity.TenantID,
+		"clientSecret":           identity.ClientSecret,
+		"authenticationEndpoint": identity.AuthenticationEndpoint,
 	}
-	if identity.TenantID == nil {
-		return nil, fmt.Errorf("%w: tenantID", errNilField)
+	missing := make([]string, 0)
+	for field, val := range fieldsToCheck {
+		if val == nil {
+			missing = append(missing, field)
+		}
 	}
-	if identity.ClientSecret == nil {
-		return nil, fmt.Errorf("%w: clientSecret", errNilField)
-	}
-	if identity.AuthenticationEndpoint == nil {
-		return nil, fmt.Errorf("%w: authenticationEndpoint", errNilField)
+	if len(missing) > 0 {
+		return nil, fmt.Errorf("%w: %s", errNilField, strings.Join(missing, ","))
 	}
 
 	// Set the regional AAD endpoint

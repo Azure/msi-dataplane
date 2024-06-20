@@ -54,7 +54,7 @@ func TestGetCredential(t *testing.T) {
 	t.Parallel()
 
 	validIdentity := test.GetTestMSI(test.ValidResourceID)
-	validIdentity.ClientSecret = test.StringPtr(test.MockCertificate)
+	validIdentity.ClientSecret = test.StringPtr(test.MockClientSecret)
 	validIdentity.TenantID = test.StringPtr(test.ValidTenantID)
 	validIdentity.AuthenticationEndpoint = test.StringPtr(test.ValidAuthenticationEndpoint)
 
@@ -205,7 +205,7 @@ func TestGetClientCertificateCredential(t *testing.T) {
 			identity: swagger.NestedCredentialsObject{
 				AuthenticationEndpoint: test.StringPtr(test.ValidAuthenticationEndpoint),
 				ClientID:               test.StringPtr(test.Bogus),
-				ClientSecret:           test.StringPtr(test.MockCertificate),
+				ClientSecret:           test.StringPtr(test.MockClientSecret),
 				TenantID:               test.StringPtr(test.Bogus),
 			},
 			cloud:       AzurePublicCloud,
