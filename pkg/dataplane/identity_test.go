@@ -1,3 +1,5 @@
+//go:build unit
+
 package dataplane
 
 import (
@@ -10,6 +12,44 @@ import (
 	"github.com/Azure/msi-dataplane/internal/test"
 )
 
+func TestIsUserAssigned(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name             string
+		credenialsObject swagger.CredentialsObject
+		expected         bool
+	}{
+		{
+			name: "User assigned MSI",
+			credenialsObject: swagger.CredentialsObject{
+				ExplicitIdentities: []*swagger.NestedCredentialsObject{
+					test.GetTestMSI(test.ValidResourceID),
+				},
+			},
+			expected: true,
+		},
+		{
+			name:             "System assigned MSI",
+			credenialsObject: swagger.CredentialsObject{},
+			expected:         false,
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			msi := CredentialsObject{
+				CredentialsObject: tc.credenialsObject,
+			}
+
+			if result := msi.IsUserAssigned(); result != tc.expected {
+				t.Errorf("expected: `%t` but got: `%t`", tc.expected, result)
+			}
+		})
+	}
+}
 func TestGetCredential(t *testing.T) {
 	t.Parallel()
 

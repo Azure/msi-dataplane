@@ -16,6 +16,7 @@ import (
 )
 
 var (
+	// Errors returned when processing idenities
 	errDecodeClientSecret = errors.New("failed to decode client secret")
 	errParseCertificate   = errors.New("failed to parse certificate")
 	errNilField           = errors.New("expected non nil field in identity")
@@ -23,6 +24,8 @@ var (
 	errResourceIDNotFound = errors.New("resource ID not found in user-assigned managed identity	")
 )
 
+// CredentialsObject is a wrapper around the swagger.CredentialsObject to add additional functionality
+// swagger.Credentials object can represent either system or user-assigned managed identity
 type CredentialsObject struct {
 	swagger.CredentialsObject
 	cloud string
@@ -32,7 +35,6 @@ type UserAssignedIdentities struct {
 	CredentialsObject
 }
 
-// swagger.Credentials object can represent either system or user-assigned managed identity
 // This method may be used by clients to check if they can use the object as a user-assigned managed identity
 // Ex: get credentials object from key vault store and check if it is a user-assigned managed identity to call client for object refresh.
 func (c CredentialsObject) IsUserAssigned() bool {
