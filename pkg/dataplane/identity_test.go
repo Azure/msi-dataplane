@@ -10,6 +10,81 @@ import (
 	"github.com/Azure/msi-dataplane/internal/test"
 )
 
+func TestGetCredential(t *testing.T) {
+	t.Parallel()
+
+	validIdentity := test.GetTestMSI(test.ValidResourceID)
+	validIdentity.ClientSecret = test.StringPtr(test.MockCertificate)
+	validIdentity.TenantID = test.StringPtr(test.ValidTenantID)
+	validIdentity.AuthenticationEndpoint = test.StringPtr(test.ValidAuthenticationEndpoint)
+
+	testCases := []struct {
+		name         string
+		uaIdentities UserAssignedIdentities
+		resourceID   string
+		expectedErr  error
+	}{
+		{
+			name: "empty resourceID",
+			uaIdentities: UserAssignedIdentities{
+				CredentialsObject: CredentialsObject{
+					CredentialsObject: swagger.CredentialsObject{
+						ExplicitIdentities: []*swagger.NestedCredentialsObject{
+							test.GetTestMSI(test.ValidResourceID),
+						},
+					},
+				},
+			},
+			resourceID:  "",
+			expectedErr: errResourceIDNotFound,
+		},
+		{
+			name:         "no identities present",
+			uaIdentities: UserAssignedIdentities{},
+			resourceID:   test.ValidResourceID,
+			expectedErr:  errResourceIDNotFound,
+		},
+		{
+			name: "Invalid client secret",
+			uaIdentities: UserAssignedIdentities{
+				CredentialsObject: CredentialsObject{
+					CredentialsObject: swagger.CredentialsObject{
+						ExplicitIdentities: []*swagger.NestedCredentialsObject{
+							test.GetTestMSI(test.ValidResourceID),
+						},
+					},
+				},
+			},
+			resourceID:  test.ValidResourceID,
+			expectedErr: errDecodeClientSecret,
+		},
+		{
+			name: "success",
+			uaIdentities: UserAssignedIdentities{
+				CredentialsObject: CredentialsObject{
+					CredentialsObject: swagger.CredentialsObject{
+						ExplicitIdentities: []*swagger.NestedCredentialsObject{
+							validIdentity,
+						},
+					},
+				},
+			},
+			resourceID:  test.ValidResourceID,
+			expectedErr: nil,
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			if _, err := tc.uaIdentities.GetCredential(tc.resourceID); !errors.Is(err, tc.expectedErr) {
+				t.Errorf("expected error: `%s` but got: `%s`", tc.expectedErr, err)
+			}
+		})
+	}
+}
+
 func TestGetClientCertificateCredential(t *testing.T) {
 	t.Parallel()
 
@@ -88,7 +163,7 @@ func TestGetClientCertificateCredential(t *testing.T) {
 		{
 			name: "success",
 			identity: swagger.NestedCredentialsObject{
-				AuthenticationEndpoint: test.StringPtr("https://login.microsoftonline.com/"),
+				AuthenticationEndpoint: test.StringPtr(test.ValidAuthenticationEndpoint),
 				ClientID:               test.StringPtr(test.Bogus),
 				ClientSecret:           test.StringPtr(test.MockCertificate),
 				TenantID:               test.StringPtr(test.Bogus),
@@ -145,10 +220,10 @@ func TestValidateUserAssignedMSI(t *testing.T) {
 		{
 			name: "success",
 			getMSI: func() []*swagger.NestedCredentialsObject {
-				testMSI := test.GetTestMSI(validResourceID)
+				testMSI := test.GetTestMSI(test.ValidResourceID)
 				return []*swagger.NestedCredentialsObject{testMSI}
 			},
-			resourceIDs: []string{validResourceID},
+			resourceIDs: []string{test.ValidResourceID},
 			expectedErr: nil,
 		},
 	}

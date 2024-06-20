@@ -14,8 +14,6 @@ import (
 
 const (
 	validIdentityURL = "https://bogus.com"
-	validTenantID    = "00000000-0000-0000-0000-000000000000"
-	validResourceID  = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/msi"
 )
 
 func TestNewClient(t *testing.T) {
@@ -49,37 +47,37 @@ func TestGetUserAssignedIdentities(t *testing.T) {
 		{
 			name:        "IdenityURL not specified",
 			goMockCall:  func(swaggerClient *mock.MockswaggerMSIClient) {},
-			request:     UserAssignedMSIRequest{ResourceIDs: []string{validResourceID}, TenantID: validTenantID},
+			request:     UserAssignedMSIRequest{ResourceIDs: []string{test.ValidResourceID}, TenantID: test.ValidTenantID},
 			expectedErr: errInvalidRequest,
 		},
 		{
 			name:        "IdenityURL not a URL",
 			goMockCall:  func(swaggerClient *mock.MockswaggerMSIClient) {},
-			request:     UserAssignedMSIRequest{IdentityURL: "bogus", ResourceIDs: []string{validResourceID}, TenantID: validTenantID},
+			request:     UserAssignedMSIRequest{IdentityURL: "bogus", ResourceIDs: []string{test.ValidResourceID}, TenantID: test.ValidTenantID},
 			expectedErr: errInvalidRequest,
 		},
 		{
 			name:        "ResourceID not specified",
 			goMockCall:  func(swaggerClient *mock.MockswaggerMSIClient) {},
-			request:     UserAssignedMSIRequest{IdentityURL: validIdentityURL, TenantID: validTenantID},
+			request:     UserAssignedMSIRequest{IdentityURL: validIdentityURL, TenantID: test.ValidTenantID},
 			expectedErr: errInvalidRequest,
 		},
 		{
 			name:        "ResourceID not valid",
 			goMockCall:  func(swaggerClient *mock.MockswaggerMSIClient) {},
-			request:     UserAssignedMSIRequest{IdentityURL: validIdentityURL, ResourceIDs: []string{"bogus"}, TenantID: validTenantID},
+			request:     UserAssignedMSIRequest{IdentityURL: validIdentityURL, ResourceIDs: []string{"bogus"}, TenantID: test.ValidTenantID},
 			expectedErr: errInvalidRequest,
 		},
 		{
 			name:        "TenantID not specified",
 			goMockCall:  func(swaggerClient *mock.MockswaggerMSIClient) {},
-			request:     UserAssignedMSIRequest{IdentityURL: validIdentityURL, ResourceIDs: []string{validResourceID}},
+			request:     UserAssignedMSIRequest{IdentityURL: validIdentityURL, ResourceIDs: []string{test.ValidResourceID}},
 			expectedErr: errInvalidRequest,
 		},
 		{
 			name:        "TenantID not a UUID",
 			goMockCall:  func(swaggerClient *mock.MockswaggerMSIClient) {},
-			request:     UserAssignedMSIRequest{IdentityURL: validIdentityURL, ResourceIDs: []string{validResourceID}, TenantID: "bogus"},
+			request:     UserAssignedMSIRequest{IdentityURL: validIdentityURL, ResourceIDs: []string{test.ValidResourceID}, TenantID: "bogus"},
 			expectedErr: errInvalidRequest,
 		},
 		{
@@ -87,7 +85,7 @@ func TestGetUserAssignedIdentities(t *testing.T) {
 			goMockCall: func(swaggerClient *mock.MockswaggerMSIClient) {
 				swaggerClient.EXPECT().Getcreds(gomock.Any(), gomock.Any(), gomock.Any()).Return(swagger.ManagedIdentityDataPlaneAPIClientGetcredsResponse{}, errors.New("bogus"))
 			},
-			request:     UserAssignedMSIRequest{IdentityURL: validIdentityURL, ResourceIDs: []string{validResourceID}, TenantID: validTenantID},
+			request:     UserAssignedMSIRequest{IdentityURL: validIdentityURL, ResourceIDs: []string{test.ValidResourceID}, TenantID: test.ValidTenantID},
 			expectedErr: errGetCreds,
 		},
 		{
@@ -95,7 +93,7 @@ func TestGetUserAssignedIdentities(t *testing.T) {
 			goMockCall: func(swaggerClient *mock.MockswaggerMSIClient) {
 				swaggerClient.EXPECT().Getcreds(gomock.Any(), gomock.Any(), gomock.Any()).Return(swagger.ManagedIdentityDataPlaneAPIClientGetcredsResponse{}, nil)
 			},
-			request:     UserAssignedMSIRequest{IdentityURL: validIdentityURL, ResourceIDs: []string{validResourceID}, TenantID: validTenantID},
+			request:     UserAssignedMSIRequest{IdentityURL: validIdentityURL, ResourceIDs: []string{test.ValidResourceID}, TenantID: test.ValidTenantID},
 			expectedErr: errNumberOfMSIs,
 		},
 		{
@@ -107,14 +105,14 @@ func TestGetUserAssignedIdentities(t *testing.T) {
 					CredentialsObject: swagger.CredentialsObject{ExplicitIdentities: identities},
 				}, nil)
 			},
-			request:     UserAssignedMSIRequest{IdentityURL: validIdentityURL, ResourceIDs: []string{validResourceID, validResourceID}, TenantID: validTenantID},
+			request:     UserAssignedMSIRequest{IdentityURL: validIdentityURL, ResourceIDs: []string{test.ValidResourceID, test.ValidResourceID}, TenantID: test.ValidTenantID},
 			expectedErr: errNumberOfMSIs,
 		},
 		{
 			name: "Valid request - single MSI",
 			goMockCall: func(swaggerClient *mock.MockswaggerMSIClient) {
-				resourceID := validResourceID
-				tenantID := validTenantID
+				resourceID := test.ValidResourceID
+				tenantID := test.ValidTenantID
 
 				uaMSI := test.GetTestMSI("bogus")
 				uaMSI.ResourceID = &resourceID
@@ -125,14 +123,14 @@ func TestGetUserAssignedIdentities(t *testing.T) {
 					CredentialsObject: swagger.CredentialsObject{ExplicitIdentities: identities},
 				}, nil)
 			},
-			request:     UserAssignedMSIRequest{IdentityURL: validIdentityURL, ResourceIDs: []string{validResourceID}, TenantID: validTenantID},
+			request:     UserAssignedMSIRequest{IdentityURL: validIdentityURL, ResourceIDs: []string{test.ValidResourceID}, TenantID: test.ValidTenantID},
 			expectedErr: nil,
 		},
 		{
 			name: "Valid request - multiple MSIs",
 			goMockCall: func(swaggerClient *mock.MockswaggerMSIClient) {
-				resourceID := validResourceID
-				tenantID := validTenantID
+				resourceID := test.ValidResourceID
+				tenantID := test.ValidTenantID
 
 				uaMSI := test.GetTestMSI("bogus")
 				uaMSI.ResourceID = &resourceID
@@ -143,7 +141,7 @@ func TestGetUserAssignedIdentities(t *testing.T) {
 					CredentialsObject: swagger.CredentialsObject{ExplicitIdentities: identities},
 				}, nil)
 			},
-			request:     UserAssignedMSIRequest{IdentityURL: validIdentityURL, ResourceIDs: []string{validResourceID, validResourceID}, TenantID: validTenantID},
+			request:     UserAssignedMSIRequest{IdentityURL: validIdentityURL, ResourceIDs: []string{test.ValidResourceID, test.ValidResourceID}, TenantID: test.ValidTenantID},
 			expectedErr: nil,
 		},
 	}
