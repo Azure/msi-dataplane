@@ -84,6 +84,8 @@ func getClientCertificateCredential(identity swagger.NestedCredentialsObject, cl
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", errDecodeClientSecret, err)
 	}
+	// Note - ParseCertificates does not currently support pkcs12 SHA256 MAC certs, so if
+	// managed identity team changes the cert format, double check this code
 	crt, key, err := azidentity.ParseCertificates(decodedSecret, nil)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", errParseCertificate, err)
