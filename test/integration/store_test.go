@@ -63,7 +63,7 @@ func TestStore(t *testing.T) {
 	}
 
 	// Add a test credentials object to the store
-	bogus := "bogus"
+	bogus := test.Bogus
 	testCredentialsObject := dataplane.CredentialsObject{
 		CredentialsObject: swagger.CredentialsObject{
 			ClientID: &bogus,

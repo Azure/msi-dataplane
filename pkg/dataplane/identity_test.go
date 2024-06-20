@@ -251,7 +251,7 @@ func TestValidateUserAssignedMSI(t *testing.T) {
 		{
 			name: "mismatched resourceID",
 			getMSI: func() []*swagger.NestedCredentialsObject {
-				testMSI := test.GetTestMSI("bogus")
+				testMSI := test.GetTestMSI(test.Bogus)
 				return []*swagger.NestedCredentialsObject{testMSI}
 			},
 			resourceIDs: []string{"someResourceID"},
