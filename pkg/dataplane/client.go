@@ -102,8 +102,8 @@ func (c *ManagedIdentityClient) GetUserAssignedIdentities(ctx context.Context, r
 		}
 	}
 
-	credentialsObject := CredentialsObject{CredentialsObject: creds.CredentialsObject, cloud: c.cloud}
-	return &UserAssignedIdentities{CredentialsObject: credentialsObject}, nil
+	credentialsObject := CredentialsObject{CredentialsObject: creds.CredentialsObject}
+	return &UserAssignedIdentities{CredentialsObject: credentialsObject, cloud: c.cloud}, nil
 }
 
 func validateResourceIDs(fl validator.FieldLevel) bool {
