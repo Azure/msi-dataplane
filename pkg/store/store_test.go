@@ -11,6 +11,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/runtime"
 	"github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azsecrets"
 	"github.com/Azure/msi-dataplane/internal/swagger"
+	"github.com/Azure/msi-dataplane/internal/test"
 	"github.com/Azure/msi-dataplane/pkg/dataplane"
 	mock "github.com/Azure/msi-dataplane/pkg/store/mock_kvclient"
 	"go.uber.org/mock/gomock"
@@ -65,7 +66,7 @@ func TestDeleteCredentialsObject(t *testing.T) {
 func TestGetCredentialsObject(t *testing.T) {
 	t.Parallel()
 
-	bogusValue := "bogus"
+	bogusValue := test.Bogus
 	testCredentialsObject := dataplane.CredentialsObject{
 		CredentialsObject: swagger.CredentialsObject{
 			ClientSecret: &bogusValue,

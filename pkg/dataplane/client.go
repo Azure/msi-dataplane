@@ -25,6 +25,7 @@ const (
 
 type ManagedIdentityClient struct {
 	swaggerClient msiClient
+	cloud         string
 }
 
 type UserAssignedMSIRequest struct {
@@ -41,12 +42,10 @@ var _ msiClient = &swagger.ManagedIdentityDataPlaneAPIClient{}
 
 var (
 	// Errors returned by the Managed Identity Dataplane API client
-	errGetCreds           = errors.New("failed to get credentials")
-	errInvalidRequest     = errors.New("invalid request")
-	errNilField           = errors.New("expected non-nil field in user-assigned managed identity")
-	errNilMSI             = errors.New("expected non-nil user-assigned managed identity")
-	errNumberOfMSIs       = errors.New("returned MSIs does not match number of requested MSIs")
-	errResourceIDMismatch = errors.New("requested resource ID not found in response")
+	errGetCreds       = errors.New("failed to get credentials")
+	errInvalidRequest = errors.New("invalid request")
+	errNilMSI         = errors.New("expected non-nil user-assigned managed identity")
+	errNumberOfMSIs   = errors.New("returned MSIs does not match number of requested MSIs")
 )
 
 // TODO - Add parameter to specify module name in azcore.NewClient()
@@ -67,10 +66,10 @@ func NewClient(aud, cloud string, cred azcore.TokenCredential) (*ManagedIdentity
 	}
 	swaggerClient := swagger.NewSwaggerClient(azCoreClient)
 
-	return &ManagedIdentityClient{swaggerClient: swaggerClient}, nil
+	return &ManagedIdentityClient{swaggerClient: swaggerClient, cloud: cloud}, nil
 }
 
-func (c *ManagedIdentityClient) GetUserAssignedIdentities(ctx context.Context, request UserAssignedMSIRequest) (*CredentialsObject, error) {
+func (c *ManagedIdentityClient) GetUserAssignedIdentities(ctx context.Context, request UserAssignedMSIRequest) (*UserAssignedIdentities, error) {
 	validate := validator.New(validator.WithRequiredStructEnabled())
 	validate.RegisterValidation(resourceIDsTag, validateResourceIDs)
 	if err := validate.Struct(request); err != nil {
@@ -103,7 +102,8 @@ func (c *ManagedIdentityClient) GetUserAssignedIdentities(ctx context.Context, r
 		}
 	}
 
-	return &CredentialsObject{CredentialsObject: creds.CredentialsObject}, nil
+	credentialsObject := CredentialsObject{CredentialsObject: creds.CredentialsObject, cloud: c.cloud}
+	return &UserAssignedIdentities{CredentialsObject: credentialsObject}, nil
 }
 
 func validateResourceIDs(fl validator.FieldLevel) bool {
@@ -149,35 +149,6 @@ func isUserAssignedMSIResource(resourceID string) bool {
 	const expectedResourceType = "userAssignedIdentities"
 
 	return resourceType.Namespace == expectedNamespace && resourceType.Type == expectedResourceType
-}
-
-func validateUserAssignedMSIs(identities []*swagger.NestedCredentialsObject, resourceIDs []string) error {
-	if len(identities) != len(resourceIDs) {
-		return fmt.Errorf("%w, found %d identities instead", errNumberOfMSIs, len(identities))
-	}
-
-	resourceIDMap := make(map[string]interface{})
-	for _, identity := range identities {
-		if identity == nil {
-			return errNilMSI
-		}
-
-		v := reflect.ValueOf(*identity)
-		for i := 0; i < v.NumField(); i++ {
-			if v.Field(i).IsNil() {
-				return fmt.Errorf("%w, field %s", errNilField, v.Type().Field(i).Name)
-			}
-		}
-		resourceIDMap[*identity.ResourceID] = true
-	}
-
-	for _, resourceID := range resourceIDs {
-		if _, ok := resourceIDMap[resourceID]; !ok {
-			return fmt.Errorf("%w, resource ID %s", errResourceIDMismatch, resourceID)
-		}
-	}
-
-	return nil
 }
 
 func getMsiHost(cloud string) string {
