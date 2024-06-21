@@ -17,11 +17,11 @@ type identityHashMap map[uint64]*CredentialsObject
 // TODO - add support for system-assigned managed identities
 type stub struct {
 	// Key is a hash of the resource IDs
-	userAssignedIdentities map[uint64]*CredentialsObject
+	userAssignedIdentities identityHashMap
 }
 
 func NewStub(creds []*CredentialsObject) *stub {
-	userAssignedIdentities := make(map[uint64]*CredentialsObject)
+	userAssignedIdentities := make(identityHashMap)
 	for _, identity := range creds {
 		if identity != nil && identity.IsUserAssigned() {
 			resourceIDs := make([]string, 0)
@@ -107,38 +107,3 @@ func hashResourceIDs(resourceIDs []string) uint64 {
 
 	return h.Sum64()
 }
-
-/*
-func NewStub(cloud string) (*ManagedIdentityStub, error) {
-	plOpts := runtime.PipelineOptions{
-		PerCall: []policy.Policy{
-			&injectIdentityURLPolicy{
-				msiHost: getMsiHost(cloud),
-			},
-		},
-	}
-
-	clientOpts := &policy.ClientOptions{
-		Transport: &stubTransporter{},
-	}
-
-	azCoreClient, err := azcore.NewClient("managedidentitydataplane.APIClient", moduleVersion, plOpts, clientOpts)
-	if err != nil {
-		return nil, err
-	}
-	swaggerClient := swagger.NewSwaggerClient(azCoreClient)
-	stub := &ManagedIdentityStub{
-		swaggerClient: swaggerClient,
-	}
-	return stub, nil
-}
-
-func (s *ManagedIdentityStub) GetUserAssignedIdentities(ctx context.Context, request UserAssignedMSIRequest) (*UserAssignedIdentities, error) {
-	ctx = context.WithValue(ctx, identityURLKey, request.IdentityURL)
-	_, err := s.swaggerClient.Getcreds(ctx, swagger.CredRequestDefinition{
-		IdentityIDs: []*string{test.StringPtr("test")},
-	}, nil)
-
-	return nil, err
-}
-*/

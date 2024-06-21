@@ -17,6 +17,8 @@ import (
 //go:generate /bin/bash -c "../../hack/mockgen.sh mock_swagger_client/zz_generated_mocks.go client.go"
 
 const (
+	// TODO - Make module name configurable
+	moduleName = "managedidentitydataplane.APIClient"
 	// TODO - Tie the module version to update automatically with new releases
 	moduleVersion = "v0.0.1"
 
@@ -60,7 +62,30 @@ func NewClient(aud, cloud string, cred azcore.TokenCredential) (*ManagedIdentity
 		},
 	}
 
-	azCoreClient, err := azcore.NewClient("managedidentitydataplane.APIClient", moduleVersion, plOpts, nil)
+	azCoreClient, err := azcore.NewClient(moduleName, moduleVersion, plOpts, nil)
+	if err != nil {
+		return nil, err
+	}
+	swaggerClient := swagger.NewSwaggerClient(azCoreClient)
+
+	return &ManagedIdentityClient{swaggerClient: swaggerClient, cloud: cloud}, nil
+}
+
+// NewStubClient creates a stubbed Managed Identity Dataplane API client for testing purposes
+func NewStubClient(cloud string, transport *stub) (*ManagedIdentityClient, error) {
+	plOpts := runtime.PipelineOptions{
+		PerCall: []policy.Policy{
+			&injectIdentityURLPolicy{
+				msiHost: getMsiHost(cloud),
+			},
+		},
+	}
+
+	clientOpts := &policy.ClientOptions{
+		Transport: transport,
+	}
+
+	azCoreClient, err := azcore.NewClient(moduleName, moduleVersion, plOpts, clientOpts)
 	if err != nil {
 		return nil, err
 	}
