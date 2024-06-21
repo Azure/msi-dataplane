@@ -33,6 +33,30 @@ func TestNewClient(t *testing.T) {
 	}
 }
 
+func TestNewStubClient(t *testing.T) {
+	t.Parallel()
+
+	uaMSI := test.GetTestMSI(test.ValidResourceID)
+	credObject := &CredentialsObject{
+		swagger.CredentialsObject{
+			ExplicitIdentities: []*swagger.NestedCredentialsObject{uaMSI},
+		},
+	}
+	testStub := New([]*CredentialsObject{credObject})
+	if testStub == nil {
+		t.Fatalf("expected non-nil stub")
+	}
+
+	client, err := NewStubClient(AzurePublicCloud, testStub)
+	if err != nil {
+		t.Fatalf("unable to create stub client: %s", err)
+	}
+
+	if client == nil {
+		t.Errorf("Client is nil")
+	}
+}
+
 func TestGetUserAssignedIdentities(t *testing.T) {
 	t.Parallel()
 

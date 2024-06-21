@@ -1,7 +1,11 @@
 package dataplane
 
 import (
+	"bytes"
 	"context"
+	"errors"
+	"io"
+	"net/http"
 	"reflect"
 	"testing"
 
@@ -9,7 +13,7 @@ import (
 	"github.com/Azure/msi-dataplane/internal/test"
 )
 
-func TestNewStubClient(t *testing.T) {
+func TestNewStub(t *testing.T) {
 	t.Parallel()
 	uaMSI := test.GetTestMSI(test.ValidResourceID)
 	credObject := &CredentialsObject{
@@ -23,7 +27,87 @@ func TestNewStubClient(t *testing.T) {
 	}
 }
 
-func TestPost(t *testing.T) {
+func TestDo(t *testing.T) {
+	t.Parallel()
+	uaMSI := test.GetTestMSI(test.ValidResourceID)
+	credObject := &CredentialsObject{
+		swagger.CredentialsObject{
+			ExplicitIdentities: []*swagger.NestedCredentialsObject{uaMSI},
+		},
+	}
+	credRequest := &swagger.CredRequestDefinition{
+		IdentityIDs: []*string{test.StringPtr(test.ValidResourceID)},
+	}
+	credRequestBytes, err := credRequest.MarshalJSON()
+	if err != nil {
+		t.Fatalf("unable to marshal request: %s", err)
+	}
+	credRequestBody := bytes.NewBuffer(credRequestBytes)
+
+	testCases := []struct {
+		name               string
+		body               *bytes.Buffer
+		method             string
+		expectedErr        error
+		expectedStatusCode int
+	}{
+		{
+			name:               "Post",
+			body:               credRequestBody,
+			method:             http.MethodPost,
+			expectedErr:        nil,
+			expectedStatusCode: http.StatusOK,
+		},
+		{
+			name:               "Get",
+			body:               bytes.NewBufferString(""),
+			method:             http.MethodGet,
+			expectedErr:        nil,
+			expectedStatusCode: http.StatusNotImplemented,
+		},
+		{
+			name:               "Put",
+			body:               bytes.NewBufferString(""),
+			method:             http.MethodPut,
+			expectedErr:        nil,
+			expectedStatusCode: http.StatusNotImplemented,
+		},
+		{
+			name:               "Delete",
+			body:               bytes.NewBufferString(""),
+			method:             http.MethodDelete,
+			expectedErr:        nil,
+			expectedStatusCode: http.StatusNotImplemented,
+		},
+		{
+			name:               "Patch",
+			body:               bytes.NewBufferString(""),
+			method:             http.MethodPatch,
+			expectedErr:        nil,
+			expectedStatusCode: http.StatusNotImplemented,
+		},
+	}
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			req, err := http.NewRequest(tc.method, "http://localhost", io.NopCloser(tc.body))
+			if err != nil {
+				t.Fatalf("unable to create request: %s", err)
+			}
+			testStub := NewStub([]*CredentialsObject{credObject})
+			response, err := testStub.Do(req)
+			if !errors.Is(err, tc.expectedErr) {
+				t.Errorf("expected error %s but got %s", tc.expectedErr, err)
+			}
+			if response.StatusCode != tc.expectedStatusCode {
+				t.Errorf("expected status code %d but got %d", tc.expectedStatusCode, response.StatusCode)
+			}
+		})
+	}
+}
+
+func TestStubWithClient(t *testing.T) {
 	t.Parallel()
 	uaMSI := test.GetTestMSI(test.ValidResourceID)
 	credObject := &CredentialsObject{
