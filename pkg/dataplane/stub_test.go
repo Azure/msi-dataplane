@@ -2,16 +2,55 @@ package dataplane
 
 import (
 	"context"
+	"reflect"
 	"testing"
+
+	"github.com/Azure/msi-dataplane/internal/swagger"
+	"github.com/Azure/msi-dataplane/internal/test"
 )
 
-func TestStub(t *testing.T) {
-	stub, err := NewStub(AzurePublicCloud)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+func TestNewStubClient(t *testing.T) {
+	t.Parallel()
+	uaMSI := test.GetTestMSI(test.ValidResourceID)
+	credObject := &CredentialsObject{
+		swagger.CredentialsObject{
+			ExplicitIdentities: []*swagger.NestedCredentialsObject{uaMSI},
+		},
 	}
-	identityURL := "https://bogus.identity.azure.net"
+	testStub := NewStub([]*CredentialsObject{credObject})
+	if testStub == nil {
+		t.Error("expected non-nil stub")
+	}
+}
 
-	_, err = stub.GetUserAssignedIdentities(context.Background(), UserAssignedMSIRequest{IdentityURL: identityURL})
-	t.Fatalf("unexpected error: %s", err)
+func TestPost(t *testing.T) {
+	t.Parallel()
+	uaMSI := test.GetTestMSI(test.ValidResourceID)
+	credObject := &CredentialsObject{
+		swagger.CredentialsObject{
+			ExplicitIdentities: []*swagger.NestedCredentialsObject{uaMSI},
+		},
+	}
+	testStub := NewStub([]*CredentialsObject{credObject})
+	client, err := NewStubClient(AzurePublicCloud, testStub)
+	if err != nil {
+		t.Fatalf("unable to create stub client: %s", err)
+	}
+	request := UserAssignedMSIRequest{
+		ResourceIDs: []string{test.ValidResourceID},
+		IdentityURL: test.ValidIdentityURL,
+		TenantID:    test.ValidTenantID,
+	}
+	identities, err := client.GetUserAssignedIdentities(context.Background(), request)
+	if err != nil {
+		t.Fatalf("unable to get user assigned msi: %s", err)
+	}
+
+	if len(identities.ExplicitIdentities) != 1 {
+		t.Errorf("expected 1 identity but got %d", len(identities.ExplicitIdentities))
+	}
+
+	if !reflect.DeepEqual(identities.ExplicitIdentities[0], uaMSI) {
+		t.Errorf("returned identity does not match expected identity")
+	}
 }
