@@ -1,3 +1,5 @@
+//go:build unit
+
 package dataplane
 
 import (
@@ -105,6 +107,68 @@ func TestDo(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestPost(t *testing.T) {
+	t.Parallel()
+
+	uaMSI := test.GetTestMSI(test.ValidResourceID)
+	credObject := &CredentialsObject{
+		swagger.CredentialsObject{
+			ExplicitIdentities: []*swagger.NestedCredentialsObject{uaMSI},
+		},
+	}
+
+	testCases := []struct {
+		name               string
+		body               io.Reader
+		expectedStatusCode int
+		expectedErr        error
+	}{
+		{
+			name:               "No body",
+			body:               http.NoBody,
+			expectedStatusCode: http.StatusBadRequest,
+			expectedErr:        errStubRequestBody,
+		},
+		{
+			name:               "Non conforming body",
+			body:               bytes.NewBufferString(test.Bogus),
+			expectedStatusCode: http.StatusBadRequest,
+			expectedErr:        errStubRequestBody,
+		},
+		{
+			name:               "ResourceID not found",
+			body:               bytes.NewBufferString(`{"identityIds": ["bogus"]}`),
+			expectedStatusCode: http.StatusNotFound,
+			expectedErr:        nil,
+		},
+		{
+			name:               "Success",
+			body:               bytes.NewBufferString(`{"identityIds": ["` + test.ValidResourceID + `"]}`),
+			expectedStatusCode: http.StatusOK,
+			expectedErr:        nil,
+		},
+	}
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			testStub := NewStub([]*CredentialsObject{credObject})
+			req, err := http.NewRequest(http.MethodPost, "http://localhost", io.NopCloser(tc.body))
+			if err != nil {
+				t.Fatalf("unable to create request: %s", err)
+			}
+			response, err := testStub.post(req)
+			if !errors.Is(err, tc.expectedErr) {
+				t.Errorf("expected error %s but got %s", tc.expectedErr, err)
+			}
+			if response.StatusCode != tc.expectedStatusCode {
+				t.Errorf("expected status code %d but got %d", tc.expectedStatusCode, response.StatusCode)
+			}
+		})
+	}
+
 }
 
 func TestStubWithClient(t *testing.T) {

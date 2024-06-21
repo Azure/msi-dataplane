@@ -42,7 +42,7 @@ func TestNewStubClient(t *testing.T) {
 			ExplicitIdentities: []*swagger.NestedCredentialsObject{uaMSI},
 		},
 	}
-	testStub := New([]*CredentialsObject{credObject})
+	testStub := NewStub([]*CredentialsObject{credObject})
 	if testStub == nil {
 		t.Fatalf("expected non-nil stub")
 	}

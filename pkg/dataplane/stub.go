@@ -2,10 +2,13 @@ package dataplane
 
 import (
 	"bytes"
+	"errors"
+	"fmt"
 	"hash/fnv"
 	"io"
 	"net/http"
 
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
 	"github.com/Azure/msi-dataplane/internal/swagger"
 )
 
@@ -19,6 +22,12 @@ type stub struct {
 	// Key is a hash of the resource IDs
 	userAssignedIdentities identityHashMap
 }
+
+var _ policy.Transporter = &stub{}
+
+var (
+	errStubRequestBody = errors.New("failed to read request body")
+)
 
 func NewStub(creds []*CredentialsObject) *stub {
 	userAssignedIdentities := make(identityHashMap)
@@ -39,7 +48,6 @@ func NewStub(creds []*CredentialsObject) *stub {
 	return &stub{userAssignedIdentities: userAssignedIdentities}
 }
 
-// Implement transport interface
 // Per MSI team's documentation, POST is for user-assigned MSI and GET is for system-assigned MSI
 // https://eng.ms/docs/products/arm/rbac/managed_identities/msionboardinguserassigned
 func (s stub) Do(req *http.Request) (*http.Response, error) {
@@ -61,14 +69,17 @@ func (s stub) Do(req *http.Request) (*http.Response, error) {
 }
 
 func (s stub) post(req *http.Request) (*http.Response, error) {
+	if req.Body == http.NoBody {
+		return &http.Response{StatusCode: http.StatusBadRequest}, errStubRequestBody
+	}
 	bodyBytes, err := io.ReadAll(req.Body)
 	if err != nil {
-		return &http.Response{StatusCode: http.StatusInternalServerError}, err
+		return &http.Response{StatusCode: http.StatusBadRequest}, fmt.Errorf("%w: %w", errStubRequestBody, err)
 	}
 
 	credRequestDefinition := &swagger.CredRequestDefinition{}
 	if err := credRequestDefinition.UnmarshalJSON(bodyBytes); err != nil {
-		return &http.Response{StatusCode: http.StatusInternalServerError}, err
+		return &http.Response{StatusCode: http.StatusBadRequest}, fmt.Errorf("%w: %w", errStubRequestBody, err)
 	}
 
 	identityList := credRequestDefinition.IdentityIDs
