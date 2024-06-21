@@ -33,6 +33,7 @@ func NewStub(creds []*CredentialsObject) *stub {
 	userAssignedIdentities := make(identityHashMap)
 	for _, identity := range creds {
 		if identity != nil && identity.IsUserAssigned() {
+			// User-assigned managed identities can have multiple resource IDs
 			resourceIDs := make([]string, 0)
 			for _, uaMSI := range identity.ExplicitIdentities {
 				if uaMSI != nil && uaMSI.ResourceID != nil {
@@ -69,6 +70,7 @@ func (s stub) Do(req *http.Request) (*http.Response, error) {
 }
 
 func (s stub) post(req *http.Request) (*http.Response, error) {
+	// Read the body into a swagger cred request definition
 	if req.Body == http.NoBody {
 		return &http.Response{StatusCode: http.StatusBadRequest}, errStubRequestBody
 	}
@@ -82,6 +84,7 @@ func (s stub) post(req *http.Request) (*http.Response, error) {
 		return &http.Response{StatusCode: http.StatusBadRequest}, fmt.Errorf("%w: %w", errStubRequestBody, err)
 	}
 
+	// Find the credentials object for the given resource IDs
 	identityList := credRequestDefinition.IdentityIDs
 	resourceIds := make([]string, 0)
 	for _, identity := range identityList {
