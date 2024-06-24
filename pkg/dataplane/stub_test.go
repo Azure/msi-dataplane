@@ -11,6 +11,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
 	"github.com/Azure/msi-dataplane/internal/swagger"
 	"github.com/Azure/msi-dataplane/internal/test"
 )
@@ -180,7 +181,10 @@ func TestStubWithClient(t *testing.T) {
 		},
 	}
 	testStub := NewStub([]*CredentialsObject{credObject})
-	client, err := NewStubClient(AzurePublicCloud, testStub)
+	clientOpts := &policy.ClientOptions{
+		Transport: testStub,
+	}
+	client, err := NewClient(AzurePublicCloud, nil, clientOpts)
 	if err != nil {
 		t.Fatalf("unable to create stub client: %s", err)
 	}

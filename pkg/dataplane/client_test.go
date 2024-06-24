@@ -20,9 +20,10 @@ func TestNewClient(t *testing.T) {
 	aud := "aud"
 	cloud := AzurePublicCloud
 	cred := &test.FakeCredential{}
+	authenticator := NewAuthenticator(cred, cloud)
 
 	// Create a new client
-	client, err := NewClient(aud, cloud, cred)
+	client, err := NewClient(aud, authenticator, nil)
 	if err != nil {
 		t.Fatalf("Failed to create a new client: %s", err)
 	}
@@ -30,30 +31,6 @@ func TestNewClient(t *testing.T) {
 	// Check if the client is not nil
 	if client == nil {
 		t.Fatalf("Client is nil")
-	}
-}
-
-func TestNewStubClient(t *testing.T) {
-	t.Parallel()
-
-	uaMSI := test.GetTestMSI(test.ValidResourceID)
-	credObject := &CredentialsObject{
-		swagger.CredentialsObject{
-			ExplicitIdentities: []*swagger.NestedCredentialsObject{uaMSI},
-		},
-	}
-	testStub := NewStub([]*CredentialsObject{credObject})
-	if testStub == nil {
-		t.Fatalf("expected non-nil stub")
-	}
-
-	client, err := NewStubClient(AzurePublicCloud, testStub)
-	if err != nil {
-		t.Fatalf("unable to create stub client: %s", err)
-	}
-
-	if client == nil {
-		t.Errorf("Client is nil")
 	}
 }
 

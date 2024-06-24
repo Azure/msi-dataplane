@@ -52,37 +52,16 @@ var (
 
 // TODO - Add parameter to specify module name in azcore.NewClient()
 // NewClient creates a new Managed Identity Dataplane API client
-func NewClient(aud, cloud string, cred azcore.TokenCredential) (*ManagedIdentityClient, error) {
+func NewClient(cloud string, authenticator policy.Policy, clientOpts *policy.ClientOptions) (*ManagedIdentityClient, error) {
+	var perCallPolicies []policy.Policy
+	if authenticator != nil {
+		perCallPolicies = append(perCallPolicies, authenticator)
+	}
+	perCallPolicies = append(perCallPolicies, &injectIdentityURLPolicy{
+		msiHost: getMsiHost(cloud),
+	})
 	plOpts := runtime.PipelineOptions{
-		PerCall: []policy.Policy{
-			newAuthenticator(cred, aud),
-			&injectIdentityURLPolicy{
-				msiHost: getMsiHost(cloud),
-			},
-		},
-	}
-
-	azCoreClient, err := azcore.NewClient(moduleName, moduleVersion, plOpts, nil)
-	if err != nil {
-		return nil, err
-	}
-	swaggerClient := swagger.NewSwaggerClient(azCoreClient)
-
-	return &ManagedIdentityClient{swaggerClient: swaggerClient, cloud: cloud}, nil
-}
-
-// NewStubClient creates a stubbed Managed Identity Dataplane API client for testing purposes
-func NewStubClient(cloud string, transport *stub) (*ManagedIdentityClient, error) {
-	plOpts := runtime.PipelineOptions{
-		PerCall: []policy.Policy{
-			&injectIdentityURLPolicy{
-				msiHost: getMsiHost(cloud),
-			},
-		},
-	}
-
-	clientOpts := &policy.ClientOptions{
-		Transport: transport,
+		PerCall: perCallPolicies,
 	}
 
 	azCoreClient, err := azcore.NewClient(moduleName, moduleVersion, plOpts, clientOpts)

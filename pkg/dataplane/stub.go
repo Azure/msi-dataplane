@@ -16,7 +16,8 @@ import (
 // Key is a hash of certain fields in the credentials object
 type identityHashMap map[uint64]*CredentialsObject
 
-// Stub is a transport that mocks the Managed Identity Dataplane API
+// Stub is a transport that mocks the Managed Identity Dataplane API. This may be used for testing purposes.
+// In NewClient() (see client.go), you can pass this via the transport for client options (see stub_test.go as an example)
 // TODO - add support for system-assigned managed identities
 type stub struct {
 	// Key is a hash of the resource IDs
