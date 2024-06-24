@@ -20,7 +20,7 @@ func TestNewClient(t *testing.T) {
 	aud := "aud"
 	cloud := AzurePublicCloud
 	cred := &test.FakeCredential{}
-	authenticator := NewAuthenticator(cred, cloud)
+	authenticator := NewAuthenticatorPolicy(cred, cloud)
 
 	// Create a new client
 	client, err := NewClient(aud, authenticator, nil)

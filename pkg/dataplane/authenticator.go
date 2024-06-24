@@ -19,7 +19,7 @@ var (
 )
 
 // Authenticating with MSI: https://eng.ms/docs/products/arm/rbac/managed_identities/msionboardinginteractionwithmsi .
-func NewAuthenticator(cred azcore.TokenCredential, audience string) policy.Policy {
+func NewAuthenticatorPolicy(cred azcore.TokenCredential, audience string) policy.Policy {
 	return runtime.NewBearerTokenPolicy(cred, nil, &policy.BearerTokenOptions{
 		AuthorizationHandler: policy.AuthorizationHandler{
 			// Make an unauthenticated request
