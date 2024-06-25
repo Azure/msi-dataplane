@@ -25,11 +25,11 @@ var (
 // swagger.Credentials object can represent either system or user-assigned managed identity
 type CredentialsObject struct {
 	swagger.CredentialsObject
-	cloud string
 }
 
 type UserAssignedIdentities struct {
 	CredentialsObject
+	cloud string
 }
 
 // This method may be used by clients to check if they can use the object as a user-assigned managed identity

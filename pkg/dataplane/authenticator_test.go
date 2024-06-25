@@ -24,7 +24,7 @@ func (ft *fakeTransport) Do(req *http.Request) (*http.Response, error) {
 	return ft.resps[len(ft.reqs)-1], nil
 }
 
-func TestNewAuthenticator(t *testing.T) {
+func TestNewAuthenticatorPolicy(t *testing.T) {
 	t.Parallel()
 
 	for _, tt := range []struct {
@@ -105,7 +105,7 @@ func TestNewAuthenticator(t *testing.T) {
 
 			pipeline := runtime.NewPipeline("", "", runtime.PipelineOptions{
 				PerCall: []policy.Policy{
-					newAuthenticator(&test.FakeCredential{}, "https://identity_url.com/"),
+					NewAuthenticatorPolicy(&test.FakeCredential{}, "https://identity_url.com/"),
 				},
 			}, &policy.ClientOptions{
 				Transport: tt.fakeTransport,

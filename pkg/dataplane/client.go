@@ -17,6 +17,8 @@ import (
 //go:generate /bin/bash -c "../../hack/mockgen.sh mock_swagger_client/zz_generated_mocks.go client.go"
 
 const (
+	// TODO - Make module name configurable
+	moduleName = "managedidentitydataplane.APIClient"
 	// TODO - Tie the module version to update automatically with new releases
 	moduleVersion = "v0.0.1"
 
@@ -50,17 +52,19 @@ var (
 
 // TODO - Add parameter to specify module name in azcore.NewClient()
 // NewClient creates a new Managed Identity Dataplane API client
-func NewClient(aud, cloud string, cred azcore.TokenCredential) (*ManagedIdentityClient, error) {
+func NewClient(cloud string, authenticator policy.Policy, clientOpts *policy.ClientOptions) (*ManagedIdentityClient, error) {
+	var perCallPolicies []policy.Policy
+	if authenticator != nil {
+		perCallPolicies = append(perCallPolicies, authenticator)
+	}
+	perCallPolicies = append(perCallPolicies, &injectIdentityURLPolicy{
+		msiHost: getMsiHost(cloud),
+	})
 	plOpts := runtime.PipelineOptions{
-		PerCall: []policy.Policy{
-			newAuthenticator(cred, aud),
-			&injectIdentityURLPolicy{
-				msiHost: getMsiHost(cloud),
-			},
-		},
+		PerCall: perCallPolicies,
 	}
 
-	azCoreClient, err := azcore.NewClient("managedidentitydataplane.APIClient", moduleVersion, plOpts, nil)
+	azCoreClient, err := azcore.NewClient(moduleName, moduleVersion, plOpts, clientOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -102,8 +106,8 @@ func (c *ManagedIdentityClient) GetUserAssignedIdentities(ctx context.Context, r
 		}
 	}
 
-	credentialsObject := CredentialsObject{CredentialsObject: creds.CredentialsObject, cloud: c.cloud}
-	return &UserAssignedIdentities{CredentialsObject: credentialsObject}, nil
+	credentialsObject := CredentialsObject{CredentialsObject: creds.CredentialsObject}
+	return &UserAssignedIdentities{CredentialsObject: credentialsObject, cloud: c.cloud}, nil
 }
 
 func validateResourceIDs(fl validator.FieldLevel) bool {

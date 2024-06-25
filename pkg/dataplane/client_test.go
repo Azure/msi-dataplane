@@ -14,19 +14,16 @@ import (
 	mock "github.com/Azure/msi-dataplane/pkg/dataplane/mock_swagger_client"
 )
 
-const (
-	validIdentityURL = "https://bogus.com"
-)
-
 func TestNewClient(t *testing.T) {
 	t.Parallel()
 
 	aud := "aud"
 	cloud := AzurePublicCloud
 	cred := &test.FakeCredential{}
+	authenticator := NewAuthenticatorPolicy(cred, cloud)
 
 	// Create a new client
-	client, err := NewClient(aud, cloud, cred)
+	client, err := NewClient(aud, authenticator, nil)
 	if err != nil {
 		t.Fatalf("Failed to create a new client: %s", err)
 	}
@@ -61,25 +58,25 @@ func TestGetUserAssignedIdentities(t *testing.T) {
 		{
 			name:        "ResourceID not specified",
 			goMockCall:  func(swaggerClient *mock.MockswaggerMSIClient) {},
-			request:     UserAssignedMSIRequest{IdentityURL: validIdentityURL, TenantID: test.ValidTenantID},
+			request:     UserAssignedMSIRequest{IdentityURL: test.ValidIdentityURL, TenantID: test.ValidTenantID},
 			expectedErr: errInvalidRequest,
 		},
 		{
 			name:        "ResourceID not valid",
 			goMockCall:  func(swaggerClient *mock.MockswaggerMSIClient) {},
-			request:     UserAssignedMSIRequest{IdentityURL: validIdentityURL, ResourceIDs: []string{test.Bogus}, TenantID: test.ValidTenantID},
+			request:     UserAssignedMSIRequest{IdentityURL: test.ValidIdentityURL, ResourceIDs: []string{test.Bogus}, TenantID: test.ValidTenantID},
 			expectedErr: errInvalidRequest,
 		},
 		{
 			name:        "TenantID not specified",
 			goMockCall:  func(swaggerClient *mock.MockswaggerMSIClient) {},
-			request:     UserAssignedMSIRequest{IdentityURL: validIdentityURL, ResourceIDs: []string{test.ValidResourceID}},
+			request:     UserAssignedMSIRequest{IdentityURL: test.ValidIdentityURL, ResourceIDs: []string{test.ValidResourceID}},
 			expectedErr: errInvalidRequest,
 		},
 		{
 			name:        "TenantID not a UUID",
 			goMockCall:  func(swaggerClient *mock.MockswaggerMSIClient) {},
-			request:     UserAssignedMSIRequest{IdentityURL: validIdentityURL, ResourceIDs: []string{test.ValidResourceID}, TenantID: test.Bogus},
+			request:     UserAssignedMSIRequest{IdentityURL: test.ValidIdentityURL, ResourceIDs: []string{test.ValidResourceID}, TenantID: test.Bogus},
 			expectedErr: errInvalidRequest,
 		},
 		{
@@ -87,7 +84,7 @@ func TestGetUserAssignedIdentities(t *testing.T) {
 			goMockCall: func(swaggerClient *mock.MockswaggerMSIClient) {
 				swaggerClient.EXPECT().Getcreds(gomock.Any(), gomock.Any(), gomock.Any()).Return(swagger.ManagedIdentityDataPlaneAPIClientGetcredsResponse{}, errors.New(test.Bogus))
 			},
-			request:     UserAssignedMSIRequest{IdentityURL: validIdentityURL, ResourceIDs: []string{test.ValidResourceID}, TenantID: test.ValidTenantID},
+			request:     UserAssignedMSIRequest{IdentityURL: test.ValidIdentityURL, ResourceIDs: []string{test.ValidResourceID}, TenantID: test.ValidTenantID},
 			expectedErr: errGetCreds,
 		},
 		{
@@ -95,7 +92,7 @@ func TestGetUserAssignedIdentities(t *testing.T) {
 			goMockCall: func(swaggerClient *mock.MockswaggerMSIClient) {
 				swaggerClient.EXPECT().Getcreds(gomock.Any(), gomock.Any(), gomock.Any()).Return(swagger.ManagedIdentityDataPlaneAPIClientGetcredsResponse{}, nil)
 			},
-			request:     UserAssignedMSIRequest{IdentityURL: validIdentityURL, ResourceIDs: []string{test.ValidResourceID}, TenantID: test.ValidTenantID},
+			request:     UserAssignedMSIRequest{IdentityURL: test.ValidIdentityURL, ResourceIDs: []string{test.ValidResourceID}, TenantID: test.ValidTenantID},
 			expectedErr: errNumberOfMSIs,
 		},
 		{
@@ -107,7 +104,7 @@ func TestGetUserAssignedIdentities(t *testing.T) {
 					CredentialsObject: swagger.CredentialsObject{ExplicitIdentities: identities},
 				}, nil)
 			},
-			request:     UserAssignedMSIRequest{IdentityURL: validIdentityURL, ResourceIDs: []string{test.ValidResourceID, test.ValidResourceID}, TenantID: test.ValidTenantID},
+			request:     UserAssignedMSIRequest{IdentityURL: test.ValidIdentityURL, ResourceIDs: []string{test.ValidResourceID, test.ValidResourceID}, TenantID: test.ValidTenantID},
 			expectedErr: errNumberOfMSIs,
 		},
 		{
@@ -125,7 +122,7 @@ func TestGetUserAssignedIdentities(t *testing.T) {
 					CredentialsObject: swagger.CredentialsObject{ExplicitIdentities: identities},
 				}, nil)
 			},
-			request:     UserAssignedMSIRequest{IdentityURL: validIdentityURL, ResourceIDs: []string{test.ValidResourceID}, TenantID: test.ValidTenantID},
+			request:     UserAssignedMSIRequest{IdentityURL: test.ValidIdentityURL, ResourceIDs: []string{test.ValidResourceID}, TenantID: test.ValidTenantID},
 			expectedErr: nil,
 		},
 		{
@@ -143,7 +140,7 @@ func TestGetUserAssignedIdentities(t *testing.T) {
 					CredentialsObject: swagger.CredentialsObject{ExplicitIdentities: identities},
 				}, nil)
 			},
-			request:     UserAssignedMSIRequest{IdentityURL: validIdentityURL, ResourceIDs: []string{test.ValidResourceID, test.ValidResourceID}, TenantID: test.ValidTenantID},
+			request:     UserAssignedMSIRequest{IdentityURL: test.ValidIdentityURL, ResourceIDs: []string{test.ValidResourceID, test.ValidResourceID}, TenantID: test.ValidTenantID},
 			expectedErr: nil,
 		},
 	}
