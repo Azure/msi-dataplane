@@ -1,5 +1,3 @@
-//go:build integration
-
 package integration
 
 import (
@@ -57,7 +55,7 @@ func TestStore(t *testing.T) {
 	}
 	defer r.Stop()
 
-	store, err := createMsiStore(r, cred)
+	msiStore, err := createMsiStore(r, cred)
 	if err != nil {
 		t.Fatalf("Failed to create MSI store: %s", err)
 	}
@@ -70,25 +68,28 @@ func TestStore(t *testing.T) {
 		},
 	}
 
-	if err := store.SetCredentialsObject(context.Background(), bogus, testCredentialsObject); err != nil {
+	props := store.SecretProperties{
+		Name: test.Bogus,
+	}
+	if err := msiStore.SetCredentialsObject(context.Background(), props, testCredentialsObject); err != nil {
 		// Fatal here since rest of test cannot proceed
 		t.Fatalf("Failed to set credentials object: %s", err)
 	}
 
 	// Get the credentials object from the store
-	returnedCredentialsObject, err := store.GetCredentialsObject(context.Background(), bogus)
+	resp, err := msiStore.GetCredentialsObject(context.Background(), bogus)
 	if err != nil {
 		// Fatal here since rest of test cannot proceed
 		t.Fatalf("Failed to get credentials object: %s", err)
 	}
 
-	if !reflect.DeepEqual(testCredentialsObject, returnedCredentialsObject) {
+	if !reflect.DeepEqual(testCredentialsObject, resp.CredentialsObject) {
 		t.Errorf(`Credential objects do not match. 
-		          Returned has client ID %s, expected %s`, *returnedCredentialsObject.ClientID, *testCredentialsObject.ClientID)
+		          Returned has client ID %s, expected %s`, *resp.CredentialsObject.ClientID, *testCredentialsObject.ClientID)
 	}
 
 	// Delete the credentials object from the store
-	if err := store.DeleteCredentialsObject(context.Background(), bogus); err != nil {
+	if err := msiStore.DeleteCredentialsObject(context.Background(), bogus); err != nil {
 		t.Errorf("Failed to delete credentials object: %s", err)
 	}
 }
