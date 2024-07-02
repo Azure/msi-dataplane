@@ -7,6 +7,7 @@ import (
 	"errors"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/runtime"
 	"github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azsecrets"
@@ -77,9 +78,17 @@ func TestGetCredentialsObject(t *testing.T) {
 		t.Fatalf("Failed to encode test credentials object: %s", err)
 	}
 	testCredentialsObjectString := string(testCredentialsObjectBuffer)
+	enabled := true
+	expires := time.Now()
+	notBefore := time.Now()
 	testGetSecretResponse := azsecrets.GetSecretResponse{
 		Secret: azsecrets.Secret{
 			Value: &testCredentialsObjectString,
+			Attributes: &azsecrets.SecretAttributes{
+				Enabled:   &enabled,
+				Expires:   &expires,
+				NotBefore: &notBefore,
+			},
 		},
 	}
 
@@ -119,8 +128,17 @@ func TestGetCredentialsObject(t *testing.T) {
 				t.Errorf("Expected error %s but got: %s", tc.expectedError, err)
 			}
 			if err == nil {
-				if !reflect.DeepEqual(testCredentialsObject, response) {
-					t.Errorf("Expected response %+v\n but got: %+v", testCredentialsObject, response)
+				if !reflect.DeepEqual(testCredentialsObject, response.CredentialsObject) {
+					t.Errorf("Expected credentials object %+v\n but got: %+v", testCredentialsObject, response.CredentialsObject)
+				}
+				if response.Properties.Enabled != enabled {
+					t.Errorf("Expected enabled %t but got: %t", enabled, response.Properties.Enabled)
+				}
+				if !response.Properties.Expires.Equal(expires) {
+					t.Errorf("Expected expires %s but got: %s", expires, response.Properties.Expires)
+				}
+				if !response.Properties.NotBefore.Equal(notBefore) {
+					t.Errorf("Expected notBefore %s but got: %s", notBefore, response.Properties.NotBefore)
 				}
 			}
 		})
@@ -235,7 +253,10 @@ func TestSetCredentialsObject(t *testing.T) {
 			tc.goMockCall(kvClient)
 
 			kvStore := NewMsiKeyVaultStore(kvClient)
-			if err := kvStore.SetCredentialsObject(context.Background(), mockSecretName, dataplane.CredentialsObject{}); !errors.Is(err, tc.expectedError) {
+			props := SecretProperties{
+				Name: mockSecretName,
+			}
+			if err := kvStore.SetCredentialsObject(context.Background(), props, dataplane.CredentialsObject{}); !errors.Is(err, tc.expectedError) {
 				t.Errorf("Expected %s but got: %s", tc.expectedError, err)
 			}
 		})
