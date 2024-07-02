@@ -53,8 +53,16 @@ func (s *MsiKeyVaultStore) GetCredentialsObject(ctx context.Context, secretName 
 	if err := credentialsObject.UnmarshalJSON([]byte(*secret.Value)); err != nil {
 		return nil, err
 	}
-	secretProperties := SecretProperties{Name: secretName}
+
+	secretProperties := SecretProperties{
+		Name:      secretName,
+		Enabled:   true, // Default to true
+		Expires:   time.Time{},
+		NotBefore: time.Time{},
+	}
+
 	if secret.Attributes != nil {
+		// Override defaults if values are present
 		if secret.Attributes.Enabled != nil {
 			secretProperties.Enabled = *secret.Attributes.Enabled
 		}
@@ -64,11 +72,6 @@ func (s *MsiKeyVaultStore) GetCredentialsObject(ctx context.Context, secretName 
 		if secret.Attributes.NotBefore != nil {
 			secretProperties.NotBefore = *secret.Attributes.NotBefore
 		}
-	} else {
-		// Set default values
-		secretProperties.Enabled = true
-		secretProperties.Expires = time.Time{}
-		secretProperties.NotBefore = time.Time{}
 	}
 
 	return &SecretResponse{CredentialsObject: credentialsObject, Properties: secretProperties}, nil
