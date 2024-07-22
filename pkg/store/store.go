@@ -4,25 +4,12 @@ import (
 	"context"
 	"time"
 
-	"github.com/Azure/azure-sdk-for-go/sdk/azcore/runtime"
 	"github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azsecrets"
 	"github.com/Azure/msi-dataplane/pkg/dataplane"
 )
 
 type MsiKeyVaultStore struct {
 	kvClient KeyVaultClient
-}
-
-type SecretProperties struct {
-	Enabled   bool
-	Expires   time.Time
-	Name      string
-	NotBefore time.Time
-}
-
-type SecretResponse struct {
-	CredentialsObject dataplane.CredentialsObject
-	Properties        SecretProperties
 }
 
 func NewMsiKeyVaultStore(kvClient KeyVaultClient) *MsiKeyVaultStore {
@@ -55,7 +42,6 @@ func (s *MsiKeyVaultStore) GetCredentialsObject(ctx context.Context, secretName 
 	}
 
 	secretProperties := SecretProperties{
-		Name:      secretName,
 		Enabled:   true, // Default to true
 		Expires:   time.Time{},
 		NotBefore: time.Time{},
@@ -78,8 +64,9 @@ func (s *MsiKeyVaultStore) GetCredentialsObject(ctx context.Context, secretName 
 }
 
 // Get a pager for listing credentials objects from the key vault.
-func (s *MsiKeyVaultStore) GetCredentialsObjectPager() *runtime.Pager[azsecrets.ListSecretPropertiesResponse] {
-	return s.kvClient.NewListSecretPropertiesPager(nil)
+func (s *MsiKeyVaultStore) GetCredentialsObjectPager() CredentialsObjectPager {
+	kvSecretPager := s.kvClient.NewListSecretPropertiesPager(nil)
+	return CredentialsObjectPager{pager: kvSecretPager}
 }
 
 // Purge a deleted credentials object from the key vault using the specified secret name.
