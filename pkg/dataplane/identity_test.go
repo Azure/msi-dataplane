@@ -8,8 +8,8 @@ import (
 	"testing"
 
 	azcloud "github.com/Azure/azure-sdk-for-go/sdk/azcore/cloud"
-	"github.com/Azure/msi-dataplane/internal/swagger"
 	"github.com/Azure/msi-dataplane/internal/test"
+	"github.com/Azure/msi-dataplane/pkg/dataplane/swagger"
 )
 
 func TestIsUserAssigned(t *testing.T) {

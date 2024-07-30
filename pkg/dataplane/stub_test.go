@@ -12,8 +12,8 @@ import (
 	"testing"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
-	"github.com/Azure/msi-dataplane/internal/swagger"
 	"github.com/Azure/msi-dataplane/internal/test"
+	"github.com/Azure/msi-dataplane/pkg/dataplane/swagger"
 )
 
 func TestNewStub(t *testing.T) {
