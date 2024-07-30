@@ -1,6 +1,6 @@
 package test
 
-import "github.com/Azure/msi-dataplane/internal/swagger"
+import "github.com/Azure/msi-dataplane/pkg/dataplane/swagger"
 
 const (
 	Bogus = "bogus"

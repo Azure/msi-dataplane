@@ -13,35 +13,35 @@ import (
 	context "context"
 	reflect "reflect"
 
-	swagger "github.com/Azure/msi-dataplane/internal/swagger"
+	swagger "github.com/Azure/msi-dataplane/pkg/dataplane/swagger"
 	gomock "go.uber.org/mock/gomock"
 )
 
-// MockswaggerMSIClient is a mock of swaggerMSIClient interface.
-type MockswaggerMSIClient struct {
+// MockmsiClient is a mock of msiClient interface.
+type MockmsiClient struct {
 	ctrl     *gomock.Controller
-	recorder *MockswaggerMSIClientMockRecorder
+	recorder *MockmsiClientMockRecorder
 }
 
-// MockswaggerMSIClientMockRecorder is the mock recorder for MockswaggerMSIClient.
-type MockswaggerMSIClientMockRecorder struct {
-	mock *MockswaggerMSIClient
+// MockmsiClientMockRecorder is the mock recorder for MockmsiClient.
+type MockmsiClientMockRecorder struct {
+	mock *MockmsiClient
 }
 
-// NewMockswaggerMSIClient creates a new mock instance.
-func NewMockswaggerMSIClient(ctrl *gomock.Controller) *MockswaggerMSIClient {
-	mock := &MockswaggerMSIClient{ctrl: ctrl}
-	mock.recorder = &MockswaggerMSIClientMockRecorder{mock}
+// NewMockmsiClient creates a new mock instance.
+func NewMockmsiClient(ctrl *gomock.Controller) *MockmsiClient {
+	mock := &MockmsiClient{ctrl: ctrl}
+	mock.recorder = &MockmsiClientMockRecorder{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockswaggerMSIClient) EXPECT() *MockswaggerMSIClientMockRecorder {
+func (m *MockmsiClient) EXPECT() *MockmsiClientMockRecorder {
 	return m.recorder
 }
 
 // Getcreds mocks base method.
-func (m *MockswaggerMSIClient) Getcreds(ctx context.Context, credRequest swagger.CredRequestDefinition, options *swagger.ManagedIdentityDataPlaneAPIClientGetcredsOptions) (swagger.ManagedIdentityDataPlaneAPIClientGetcredsResponse, error) {
+func (m *MockmsiClient) Getcreds(ctx context.Context, credRequest swagger.CredRequestDefinition, options *swagger.ManagedIdentityDataPlaneAPIClientGetcredsOptions) (swagger.ManagedIdentityDataPlaneAPIClientGetcredsResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Getcreds", ctx, credRequest, options)
 	ret0, _ := ret[0].(swagger.ManagedIdentityDataPlaneAPIClientGetcredsResponse)
@@ -50,7 +50,7 @@ func (m *MockswaggerMSIClient) Getcreds(ctx context.Context, credRequest swagger
 }
 
 // Getcreds indicates an expected call of Getcreds.
-func (mr *MockswaggerMSIClientMockRecorder) Getcreds(ctx, credRequest, options any) *gomock.Call {
+func (mr *MockmsiClientMockRecorder) Getcreds(ctx, credRequest, options any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Getcreds", reflect.TypeOf((*MockswaggerMSIClient)(nil).Getcreds), ctx, credRequest, options)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Getcreds", reflect.TypeOf((*MockmsiClient)(nil).Getcreds), ctx, credRequest, options)
 }
