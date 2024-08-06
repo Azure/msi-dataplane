@@ -70,13 +70,17 @@ func getClientCertificateCredential(identity swagger.NestedCredentialsObject, cl
 		return nil, fmt.Errorf("%w: %s", errNilField, strings.Join(missing, ","))
 	}
 
-	// Set the regional AAD endpoint
-	// https://eng.ms/docs/products/arm/rbac/managed_identities/msionboardingcredentialapiversion2019-08-31
 	opts := &azidentity.ClientCertificateCredentialOptions{
 		ClientOptions: azcore.ClientOptions{
 			Cloud: getAzCoreCloud(cloud),
 		},
+
+		// x5c header required: https://eng.ms/docs/products/arm/rbac/managed_identities/msionboardingrequestingatoken
+		SendCertificateChain: true,
 	}
+
+	// Set the regional AAD endpoint
+	// https://eng.ms/docs/products/arm/rbac/managed_identities/msionboardingcredentialapiversion2019-08-31
 	opts.Cloud.ActiveDirectoryAuthorityHost = *identity.AuthenticationEndpoint
 
 	// Parse the certificate and private key from the base64 encoded secret
