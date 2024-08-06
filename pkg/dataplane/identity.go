@@ -75,7 +75,7 @@ func getClientCertificateCredential(identity swagger.NestedCredentialsObject, cl
 			Cloud: getAzCoreCloud(cloud),
 		},
 
-		// X5c header required: https://eng.ms/docs/products/arm/rbac/managed_identities/msionboardingrequestingatoken
+		// x5c header required: https://eng.ms/docs/products/arm/rbac/managed_identities/msionboardingrequestingatoken
 		SendCertificateChain: true,
 	}
 
