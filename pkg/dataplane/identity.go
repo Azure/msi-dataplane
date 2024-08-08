@@ -18,7 +18,8 @@ var (
 	errDecodeClientSecret = errors.New("failed to decode client secret")
 	errParseCertificate   = errors.New("failed to parse certificate")
 	errNilField           = errors.New("expected non nil field in identity")
-	errResourceIDNotFound = errors.New("resource ID not found in user-assigned managed identity	")
+	errNoUserAssignedMSIs = errors.New("credentials object does not contain user-assigned managed identities")
+	errResourceIDNotFound = errors.New("resource ID not found in user-assigned managed identity")
 )
 
 // CredentialsObject is a wrapper around the swagger.CredentialsObject to add additional functionality
@@ -30,6 +31,14 @@ type CredentialsObject struct {
 type UserAssignedIdentities struct {
 	CredentialsObject
 	cloud string
+}
+
+// Constructor for UserAssignedIdentities object
+func NewUserAssignedIdentities(c CredentialsObject, cloud string) (*UserAssignedIdentities, error) {
+	if !c.IsUserAssigned() {
+		return nil, errNoUserAssignedMSIs
+	}
+	return &UserAssignedIdentities{CredentialsObject: c, cloud: cloud}, nil
 }
 
 // This method may be used by clients to check if they can use the object as a user-assigned managed identity
