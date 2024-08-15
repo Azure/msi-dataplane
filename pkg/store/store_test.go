@@ -114,8 +114,9 @@ func TestGetCredentialsObject(t *testing.T) {
 		{
 			name: "Returns error when secret value is nil",
 			goMockCall: func(kvClient *mock.MockKeyVaultClient) {
-				testGetSecretResponse.Secret.Value = nil
-				kvClient.EXPECT().GetSecret(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(testGetSecretResponse, nil)
+				resp := testGetSecretResponse
+				resp.Secret.Value = nil
+				kvClient.EXPECT().GetSecret(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(resp, nil)
 			},
 			expectedError: errNilSecretValue,
 		},
