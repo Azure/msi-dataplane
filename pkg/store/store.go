@@ -14,8 +14,6 @@ var (
 	errNilSecretValue = errors.New("secret value is nil")
 )
 
-var _ KeyVaultClient = &azsecrets.Client{}
-
 type MsiKeyVaultStore struct {
 	kvClient KeyVaultClient
 }
