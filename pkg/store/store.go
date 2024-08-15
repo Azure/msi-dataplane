@@ -54,10 +54,10 @@ func (s *MsiKeyVaultStore) GetCredentialsObject(ctx context.Context, secretName 
 		return nil, err
 	}
 
-	var credentialsObject dataplane.CredentialsObject
 	if secret.Value == nil {
 		return nil, errNilSecretValue
 	}
+	var credentialsObject dataplane.CredentialsObject
 	if err := credentialsObject.UnmarshalJSON([]byte(*secret.Value)); err != nil {
 		return nil, err
 	}
