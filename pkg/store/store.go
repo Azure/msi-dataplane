@@ -90,6 +90,11 @@ func (s *MsiKeyVaultStore) GetCredentialsObjectPager() *runtime.Pager[azsecrets.
 	return s.kvClient.NewListSecretPropertiesPager(nil)
 }
 
+// Get a pager for listing deleted credentials objects from the key vault.
+func (s *MsiKeyVaultStore) GetDeletedCredentialsObjectPager() *runtime.Pager[azsecrets.ListDeletedSecretPropertiesResponse] {
+	return s.kvClient.NewListDeletedSecretPropertiesPager(nil)
+}
+
 // Purge a deleted credentials object from the key vault using the specified secret name.
 // This operation is only applicable in vaults enabled for soft-delete.
 func (s *MsiKeyVaultStore) PurgeDeletedCredentialsObject(ctx context.Context, secretName string) error {
