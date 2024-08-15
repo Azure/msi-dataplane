@@ -2,11 +2,16 @@ package store
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/runtime"
 	"github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azsecrets"
 	"github.com/Azure/msi-dataplane/pkg/dataplane"
+)
+
+var (
+	errNilSecretValue = errors.New("secret value is nil")
 )
 
 type MsiKeyVaultStore struct {
@@ -50,6 +55,9 @@ func (s *MsiKeyVaultStore) GetCredentialsObject(ctx context.Context, secretName 
 	}
 
 	var credentialsObject dataplane.CredentialsObject
+	if secret.Value == nil {
+		return nil, errNilSecretValue
+	}
 	if err := credentialsObject.UnmarshalJSON([]byte(*secret.Value)); err != nil {
 		return nil, err
 	}
