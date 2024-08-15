@@ -14,6 +14,8 @@ var (
 	errNilSecretValue = errors.New("secret value is nil")
 )
 
+var _ KeyVaultClient = &azsecrets.Client{}
+
 type MsiKeyVaultStore struct {
 	kvClient KeyVaultClient
 }
@@ -88,6 +90,11 @@ func (s *MsiKeyVaultStore) GetCredentialsObject(ctx context.Context, secretName 
 // Get a pager for listing credentials objects from the key vault.
 func (s *MsiKeyVaultStore) GetCredentialsObjectPager() *runtime.Pager[azsecrets.ListSecretPropertiesResponse] {
 	return s.kvClient.NewListSecretPropertiesPager(nil)
+}
+
+// Get a pager for listing deleted credentials objects from the key vault.
+func (s *MsiKeyVaultStore) GetDeletedCredentialsObjectPager() *runtime.Pager[azsecrets.ListDeletedSecretPropertiesResponse] {
+	return s.kvClient.NewListDeletedSecretPropertiesPager(nil)
 }
 
 // Purge a deleted credentials object from the key vault using the specified secret name.

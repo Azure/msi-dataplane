@@ -154,6 +154,39 @@ func TestGetCredentialsObject(t *testing.T) {
 	}
 }
 
+func TestNewDeletedListSecretsPager(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name          string
+		expectedPager *runtime.Pager[azsecrets.ListDeletedSecretPropertiesResponse]
+		goMockCall    func(kvClient *mock.MockKeyVaultClient)
+	}{
+		{
+			name: "Returns a pager",
+			goMockCall: func(kvClient *mock.MockKeyVaultClient) {
+				kvClient.EXPECT().NewListDeletedSecretPropertiesPager(gomock.Any()).Return(&runtime.Pager[azsecrets.ListDeletedSecretPropertiesResponse]{})
+			},
+		},
+	}
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
+
+			kvClient := mock.NewMockKeyVaultClient(mockCtrl)
+			tc.goMockCall(kvClient)
+
+			kvStore := NewMsiKeyVaultStore(kvClient)
+			if pager := kvStore.GetDeletedCredentialsObjectPager(); pager == nil {
+				t.Error("Expected pager but got nil")
+			}
+		})
+	}
+}
+
 func TestNewListSecretsPager(t *testing.T) {
 	t.Parallel()
 
