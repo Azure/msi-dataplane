@@ -190,14 +190,14 @@ func TestDeletedGetCredentialsObject(t *testing.T) {
 		{
 			name: "Returns success when kv client successfully gets the deleted secret",
 			goMockCall: func(kvClient *mock.MockKeyVaultClient) {
-				kvClient.EXPECT().GetDeletedSecret(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(testGetDeletedSecretResponse, nil)
+				kvClient.EXPECT().GetDeletedSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(testGetDeletedSecretResponse, nil)
 			},
 			expectedError: nil,
 		},
 		{
 			name: "Returns kv client error when kv client fails to get the deleted secret",
 			goMockCall: func(kvClient *mock.MockKeyVaultClient) {
-				kvClient.EXPECT().GetDeletedSecret(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(azsecrets.GetDeletedSecretResponse{}, errMock)
+				kvClient.EXPECT().GetDeletedSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(azsecrets.GetDeletedSecretResponse{}, errMock)
 			},
 			expectedError: errMock,
 		},
@@ -206,7 +206,7 @@ func TestDeletedGetCredentialsObject(t *testing.T) {
 			goMockCall: func(kvClient *mock.MockKeyVaultClient) {
 				resp := testGetDeletedSecretResponse
 				resp.Secret.Value = nil
-				kvClient.EXPECT().GetDeletedSecret(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(resp, nil)
+				kvClient.EXPECT().GetDeletedSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(resp, nil)
 			},
 			expectedError: errNilSecretValue,
 		},
