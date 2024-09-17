@@ -172,7 +172,7 @@ func TestDeletedGetCredentialsObject(t *testing.T) {
 	expires := time.Now()
 	notBefore := time.Now()
 	testGetDeletedSecretResponse := azsecrets.GetDeletedSecretResponse{
-		Secret: azsecrets.Secret{
+		DeletedSecret: azsecrets.DeletedSecret{
 			Value: &testCredentialsObjectString,
 			Attributes: &azsecrets.SecretAttributes{
 				Enabled:   &enabled,
