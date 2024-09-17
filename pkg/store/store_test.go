@@ -168,17 +168,15 @@ func TestDeletedGetCredentialsObject(t *testing.T) {
 		t.Fatalf("Failed to encode test credentials object: %s", err)
 	}
 	testCredentialsObjectString := string(testCredentialsObjectBuffer)
-	enabled := true
-	expires := time.Now()
-	notBefore := time.Now()
+	deletedDate := time.Now()
+	recoveryLevel := "Purgable"
 	testGetDeletedSecretResponse := azsecrets.GetDeletedSecretResponse{
 		DeletedSecret: azsecrets.DeletedSecret{
 			Value: &testCredentialsObjectString,
 			Attributes: &azsecrets.SecretAttributes{
-				Enabled:   &enabled,
-				Expires:   &expires,
-				NotBefore: &notBefore,
+				RecoveryLevel: &recoveryLevel,
 			},
+			DeletedDate: &deletedDate,
 		},
 	}
 
@@ -230,14 +228,8 @@ func TestDeletedGetCredentialsObject(t *testing.T) {
 				if !reflect.DeepEqual(testCredentialsObject, response.CredentialsObject) {
 					t.Errorf("Expected credentials object %+v\n but got: %+v", testCredentialsObject, response.CredentialsObject)
 				}
-				if response.Properties.Enabled != enabled {
-					t.Errorf("Expected enabled %t but got: %t", enabled, response.Properties.Enabled)
-				}
-				if !response.Properties.Expires.Equal(expires) {
-					t.Errorf("Expected expires %s but got: %s", expires, response.Properties.Expires)
-				}
-				if !response.Properties.NotBefore.Equal(notBefore) {
-					t.Errorf("Expected notBefore %s but got: %s", notBefore, response.Properties.NotBefore)
+				if !response.Properties.DeletedDate.Equal(deletedDate) {
+					t.Errorf("Expected deletedDate %s but got: %s", deletedDate, response.Properties.DeletedDate)
 				}
 			}
 		})

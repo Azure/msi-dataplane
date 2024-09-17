@@ -14,6 +14,17 @@ var (
 	errNilSecretValue = errors.New("secret value is nil")
 )
 
+type DeletedSecretProperties struct {
+	Name          string
+	RecoveryLevel string
+	DeletedDate   time.Time
+}
+
+type DeletedSecretResponse struct {
+	CredentialsObject dataplane.CredentialsObject
+	Properties        DeletedSecretProperties
+}
+
 type MsiKeyVaultStore struct {
 	kvClient KeyVaultClient
 }
@@ -86,7 +97,7 @@ func (s *MsiKeyVaultStore) GetCredentialsObject(ctx context.Context, secretName 
 }
 
 // Get a deleted credentials object from the key vault using the specified secret name.
-func (s *MsiKeyVaultStore) GetDeletedCredentialsObject(ctx context.Context, secretName string) (*SecretResponse, error) {
+func (s *MsiKeyVaultStore) GetDeletedCredentialsObject(ctx context.Context, secretName string) (*DeletedSecretResponse, error) {
 	response, err := s.kvClient.GetDeletedSecret(ctx, secretName, nil)
 	if err != nil {
 		return nil, err
@@ -101,27 +112,24 @@ func (s *MsiKeyVaultStore) GetDeletedCredentialsObject(ctx context.Context, secr
 		return nil, err
 	}
 
-	secretProperties := SecretProperties{
-		Name:      secretName,
-		Enabled:   false, // Default to false
-		Expires:   time.Time{},
-		NotBefore: time.Time{},
+	deletedSecretProperties := DeletedSecretProperties{
+		Name:          secretName,
+		RecoveryLevel: "",
+		DeletedDate:   time.Time{},
+	}
+
+	if response.DeletedDate != nil {
+		deletedSecretProperties.DeletedDate = *response.DeletedDate
 	}
 
 	if response.Attributes != nil {
 		// Override defaults if values are present
-		if response.Attributes.Enabled != nil {
-			secretProperties.Enabled = *response.Attributes.Enabled
-		}
-		if response.Attributes.Expires != nil {
-			secretProperties.Expires = *response.Attributes.Expires
-		}
-		if response.Attributes.NotBefore != nil {
-			secretProperties.NotBefore = *response.Attributes.NotBefore
+		if response.Attributes.RecoveryLevel != nil {
+			deletedSecretProperties.RecoveryLevel = *response.Attributes.RecoveryLevel
 		}
 	}
 
-	return &SecretResponse{CredentialsObject: credentialsObject, Properties: secretProperties}, nil
+	return &DeletedSecretResponse{CredentialsObject: credentialsObject, Properties: deletedSecretProperties}, nil
 }
 
 // Get a pager for listing credentials objects from the key vault.
