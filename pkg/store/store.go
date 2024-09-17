@@ -86,8 +86,42 @@ func (s *MsiKeyVaultStore) GetCredentialsObject(ctx context.Context, secretName 
 }
 
 // Get a deleted credentials object from the key vault using the specified secret name.
-func (s *MsiKeyVaultStore) GetDeletedCredentialsObject(ctx context.Context, secretName string) (azsecrets.GetDeletedSecretResponse, error) {
-	return s.kvClient.GetDeletedSecret(ctx, secretName, nil)
+func (s *MsiKeyVaultStore) GetDeletedCredentialsObject(ctx context.Context, secretName string) (*SecretResponse, error) {
+	response, err := s.kvClient.GetDeletedSecret(ctx, secretName, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	if response.Value == nil {
+		return nil, errNilSecretValue
+	}
+
+	var credentialsObject dataplane.CredentialsObject
+	if err := credentialsObject.UnmarshalJSON([]byte(*response.Value)); err != nil {
+		return nil, err
+	}
+
+	secretProperties := SecretProperties{
+		Name:      secretName,
+		Enabled:   true, // Default to true
+		Expires:   time.Time{},
+		NotBefore: time.Time{},
+	}
+
+	if response.Attributes != nil {
+		// Override defaults if values are present
+		if response.Attributes.Enabled != nil {
+			secretProperties.Enabled = *response.Attributes.Enabled
+		}
+		if response.Attributes.Expires != nil {
+			secretProperties.Expires = *response.Attributes.Expires
+		}
+		if response.Attributes.NotBefore != nil {
+			secretProperties.NotBefore = *response.Attributes.NotBefore
+		}
+	}
+
+	return &SecretResponse{CredentialsObject: credentialsObject, Properties: secretProperties}, nil
 }
 
 // Get a pager for listing credentials objects from the key vault.

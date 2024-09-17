@@ -154,6 +154,96 @@ func TestGetCredentialsObject(t *testing.T) {
 	}
 }
 
+func TestDeletedGetCredentialsObject(t *testing.T) {
+	t.Parallel()
+
+	bogusValue := test.Bogus
+	testCredentialsObject := dataplane.CredentialsObject{
+		CredentialsObject: swagger.CredentialsObject{
+			ClientSecret: &bogusValue,
+		},
+	}
+	testCredentialsObjectBuffer, err := testCredentialsObject.MarshalJSON()
+	if err != nil {
+		t.Fatalf("Failed to encode test credentials object: %s", err)
+	}
+	testCredentialsObjectString := string(testCredentialsObjectBuffer)
+	enabled := true
+	expires := time.Now()
+	notBefore := time.Now()
+	testGetDeletedSecretResponse := azsecrets.GetDeletedSecretResponse{
+		Secret: azsecrets.Secret{
+			Value: &testCredentialsObjectString,
+			Attributes: &azsecrets.SecretAttributes{
+				Enabled:   &enabled,
+				Expires:   &expires,
+				NotBefore: &notBefore,
+			},
+		},
+	}
+
+	testCases := []struct {
+		name          string
+		goMockCall    func(kvClient *mock.MockKeyVaultClient)
+		expectedError error
+	}{
+		{
+			name: "Returns success when kv client successfully gets the deleted secret",
+			goMockCall: func(kvClient *mock.MockKeyVaultClient) {
+				kvClient.EXPECT().GetDeletedSecret(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(testGetDeletedSecretResponse, nil)
+			},
+			expectedError: nil,
+		},
+		{
+			name: "Returns kv client error when kv client fails to get the secret",
+			goMockCall: func(kvClient *mock.MockKeyVaultClient) {
+				kvClient.EXPECT().GetDeletedSecret(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(azsecrets.GetDeletedSecretResponse{}, errMock)
+			},
+			expectedError: errMock,
+		},
+		{
+			name: "Returns error when secret value is nil",
+			goMockCall: func(kvClient *mock.MockKeyVaultClient) {
+				resp := testGetDeletedSecretResponse
+				resp.Secret.Value = nil
+				kvClient.EXPECT().GetDeletedSecret(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(resp, nil)
+			},
+			expectedError: errNilSecretValue,
+		},
+	}
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
+
+			kvClient := mock.NewMockKeyVaultClient(mockCtrl)
+			tc.goMockCall(kvClient)
+
+			kvStore := NewMsiKeyVaultStore(kvClient)
+			response, err := kvStore.GetDeletedCredentialsObject(context.Background(), mockSecretName)
+			if !errors.Is(err, tc.expectedError) {
+				t.Errorf("Expected error %s but got: %s", tc.expectedError, err)
+			}
+			if err == nil {
+				if !reflect.DeepEqual(testCredentialsObject, response.CredentialsObject) {
+					t.Errorf("Expected credentials object %+v\n but got: %+v", testCredentialsObject, response.CredentialsObject)
+				}
+				if response.Properties.Enabled != enabled {
+					t.Errorf("Expected enabled %t but got: %t", enabled, response.Properties.Enabled)
+				}
+				if !response.Properties.Expires.Equal(expires) {
+					t.Errorf("Expected expires %s but got: %s", expires, response.Properties.Expires)
+				}
+				if !response.Properties.NotBefore.Equal(notBefore) {
+					t.Errorf("Expected notBefore %s but got: %s", notBefore, response.Properties.NotBefore)
+				}
+			}
+		})
+	}
+}
+
 func TestNewDeletedListSecretsPager(t *testing.T) {
 	t.Parallel()
 
