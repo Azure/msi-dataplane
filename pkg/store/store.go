@@ -85,6 +85,11 @@ func (s *MsiKeyVaultStore) GetCredentialsObject(ctx context.Context, secretName 
 	return &SecretResponse{CredentialsObject: credentialsObject, Properties: secretProperties}, nil
 }
 
+// Get a deleted credentials object from the key vault using the specified secret name.
+func (s *MsiKeyVaultStore) GetDeletedCredentialsObject(ctx context.Context, secretName string) (azsecrets.GetDeletedSecretResponse, error) {
+	return s.kvClient.GetDeletedSecret(ctx, secretName, nil)
+}
+
 // Get a pager for listing credentials objects from the key vault.
 func (s *MsiKeyVaultStore) GetCredentialsObjectPager() *runtime.Pager[azsecrets.ListSecretPropertiesResponse] {
 	return s.kvClient.NewListSecretPropertiesPager(nil)
