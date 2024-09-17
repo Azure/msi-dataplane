@@ -195,7 +195,7 @@ func TestDeletedGetCredentialsObject(t *testing.T) {
 			expectedError: nil,
 		},
 		{
-			name: "Returns kv client error when kv client fails to get the secret",
+			name: "Returns kv client error when kv client fails to get the deleted secret",
 			goMockCall: func(kvClient *mock.MockKeyVaultClient) {
 				kvClient.EXPECT().GetDeletedSecret(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(azsecrets.GetDeletedSecretResponse{}, errMock)
 			},
