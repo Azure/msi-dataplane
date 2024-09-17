@@ -103,7 +103,7 @@ func (s *MsiKeyVaultStore) GetDeletedCredentialsObject(ctx context.Context, secr
 
 	secretProperties := SecretProperties{
 		Name:      secretName,
-		Enabled:   true, // Default to true
+		Enabled:   false, // Default to false
 		Expires:   time.Time{},
 		NotBefore: time.Time{},
 	}
