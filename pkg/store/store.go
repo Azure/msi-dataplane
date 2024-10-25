@@ -164,6 +164,11 @@ func (s *MsiKeyVaultStore) SetCredentialsObject(ctx context.Context, properties 
 	return s.setSecret(ctx, properties, credentialsObjectString)
 }
 
+// Set a backing certificate in the key vault using the specified secret name
+func (s *MsiKeyVaultStore) SetBackingCertificate(ctx context.Context, properties SecretProperties, backingCertificate string) error {
+	return s.setSecret(ctx, properties, backingCertificate)
+}
+
 func (s *MsiKeyVaultStore) setSecret(ctx context.Context, properties SecretProperties, secret string) error {
 	setSecretParameters := azsecrets.SetSecretParameters{
 		Value: &secret,
