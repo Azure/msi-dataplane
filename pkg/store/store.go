@@ -161,8 +161,12 @@ func (s *MsiKeyVaultStore) SetCredentialsObject(ctx context.Context, properties 
 	}
 
 	credentialsObjectString := string(credentialsObjectBuffer)
+	return s.setSecret(ctx, properties, credentialsObjectString)
+}
+
+func (s *MsiKeyVaultStore) setSecret(ctx context.Context, properties SecretProperties, secret string) error {
 	setSecretParameters := azsecrets.SetSecretParameters{
-		Value: &credentialsObjectString,
+		Value: &secret,
 		SecretAttributes: &azsecrets.SecretAttributes{
 			Enabled:   &properties.Enabled,
 			Expires:   &properties.Expires,
