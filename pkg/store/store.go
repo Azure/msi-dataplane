@@ -58,7 +58,7 @@ func (s *MsiKeyVaultStore) DeleteCredentialsObject(ctx context.Context, secretNa
 
 // Delete a certificate object from key vault using the specified secret name.
 // Delete applies to all versions of the secret.
-func (s *MsiKeyVaultStore) DeleteBackingCertificate(ctx context.Context, secretName string) error {
+func (s *MsiKeyVaultStore) DeleteCertificateObject(ctx context.Context, secretName string) error {
 	return s.deleteSecret(ctx, secretName)
 }
 
@@ -88,7 +88,7 @@ func (s *MsiKeyVaultStore) GetCredentialsObject(ctx context.Context, secretName 
 
 // Get a certificate object from the key vault using the specified secret name.
 // The latest version of the secret will always be returned.
-func (s *MsiKeyVaultStore) GetBackingCertificate(ctx context.Context, secretName string) (*CertificateSecretResponse, error) {
+func (s *MsiKeyVaultStore) GetCertificateObject(ctx context.Context, secretName string) (*CertificateSecretResponse, error) {
 	secret, properties, err := s.getSecret(ctx, secretName)
 	if err != nil {
 		return nil, err
@@ -181,6 +181,16 @@ func (s *MsiKeyVaultStore) GetDeletedCredentialsObjectPager() *runtime.Pager[azs
 // Purge a deleted credentials object from the key vault using the specified secret name.
 // This operation is only applicable in vaults enabled for soft-delete.
 func (s *MsiKeyVaultStore) PurgeDeletedCredentialsObject(ctx context.Context, secretName string) error {
+	if _, err := s.kvClient.PurgeDeletedSecret(ctx, secretName, nil); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// Purge a deleted certificate object from the key vault using the specified secret name.
+// This operation is only applicable in vaults enabled for soft-delete.
+func (s *MsiKeyVaultStore) PurgeDeletedCertificateObject(ctx context.Context, secretName string) error {
 	if _, err := s.kvClient.PurgeDeletedSecret(ctx, secretName, nil); err != nil {
 		return err
 	}
