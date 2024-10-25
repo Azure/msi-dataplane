@@ -36,9 +36,14 @@ type SecretProperties struct {
 	NotBefore time.Time
 }
 
-type SecretResponse struct {
+type CredentialsObjectSecretResponse struct {
 	CredentialsObject dataplane.CredentialsObject
 	Properties        SecretProperties
+}
+
+type CertificateSecretResponse struct {
+	Certificate string
+	Properties  SecretProperties
 }
 
 func NewMsiKeyVaultStore(kvClient KeyVaultClient) *MsiKeyVaultStore {
@@ -48,6 +53,16 @@ func NewMsiKeyVaultStore(kvClient KeyVaultClient) *MsiKeyVaultStore {
 // Delete a credentials object from key vault using the specified secret name.
 // Delete applies to all versions of the secret.
 func (s *MsiKeyVaultStore) DeleteCredentialsObject(ctx context.Context, secretName string) error {
+	return s.deleteSecret(ctx, secretName)
+}
+
+// Delete a certificate object from key vault using the specified secret name.
+// Delete applies to all versions of the secret.
+func (s *MsiKeyVaultStore) DeleteBackingCertificate(ctx context.Context, secretName string) error {
+	return s.deleteSecret(ctx, secretName)
+}
+
+func (s *MsiKeyVaultStore) deleteSecret(ctx context.Context, secretName string) error {
 	if _, err := s.kvClient.DeleteSecret(ctx, secretName, nil); err != nil {
 		return err
 	}
@@ -57,20 +72,41 @@ func (s *MsiKeyVaultStore) DeleteCredentialsObject(ctx context.Context, secretNa
 
 // Get a credentials object from the key vault using the specified secret name.
 // The latest version of the secret will always be returned.
-func (s *MsiKeyVaultStore) GetCredentialsObject(ctx context.Context, secretName string) (*SecretResponse, error) {
-	// https://github.com/Azure/azure-sdk-for-go/blob/3fab729f1bd43098837ddc34931fec6c342fa3ef/sdk/security/keyvault/azsecrets/client.go#L197
-	latestSecretVersion := ""
-	secret, err := s.kvClient.GetSecret(ctx, secretName, latestSecretVersion, nil)
+func (s *MsiKeyVaultStore) GetCredentialsObject(ctx context.Context, secretName string) (*CredentialsObjectSecretResponse, error) {
+	secret, properties, err := s.getSecret(ctx, secretName)
 	if err != nil {
 		return nil, err
 	}
 
-	if secret.Value == nil {
-		return nil, errNilSecretValue
-	}
 	var credentialsObject dataplane.CredentialsObject
-	if err := credentialsObject.UnmarshalJSON([]byte(*secret.Value)); err != nil {
+	if err := credentialsObject.UnmarshalJSON([]byte(secret)); err != nil {
 		return nil, err
+	}
+
+	return &CredentialsObjectSecretResponse{CredentialsObject: credentialsObject, Properties: properties}, nil
+}
+
+// Get a certificate object from the key vault using the specified secret name.
+// The latest version of the secret will always be returned.
+func (s *MsiKeyVaultStore) GetBackingCertificate(ctx context.Context, secretName string) (*CertificateSecretResponse, error) {
+	secret, properties, err := s.getSecret(ctx, secretName)
+	if err != nil {
+		return nil, err
+	}
+
+	return &CertificateSecretResponse{Certificate: secret, Properties: properties}, nil
+}
+
+func (s *MsiKeyVaultStore) getSecret(ctx context.Context, secretName string) (string, SecretProperties, error) {
+	// https://github.com/Azure/azure-sdk-for-go/blob/3fab729f1bd43098837ddc34931fec6c342fa3ef/sdk/security/keyvault/azsecrets/client.go#L197
+	latestSecretVersion := ""
+	secretResponse, err := s.kvClient.GetSecret(ctx, secretName, latestSecretVersion, nil)
+	if err != nil {
+		return "", SecretProperties{}, err
+	}
+
+	if secretResponse.Value == nil {
+		return "", SecretProperties{}, errNilSecretValue
 	}
 
 	secretProperties := SecretProperties{
@@ -80,20 +116,20 @@ func (s *MsiKeyVaultStore) GetCredentialsObject(ctx context.Context, secretName 
 		NotBefore: time.Time{},
 	}
 
-	if secret.Attributes != nil {
+	if secretResponse.Attributes != nil {
 		// Override defaults if values are present
-		if secret.Attributes.Enabled != nil {
-			secretProperties.Enabled = *secret.Attributes.Enabled
+		if secretResponse.Attributes.Enabled != nil {
+			secretProperties.Enabled = *secretResponse.Attributes.Enabled
 		}
-		if secret.Attributes.Expires != nil {
-			secretProperties.Expires = *secret.Attributes.Expires
+		if secretResponse.Attributes.Expires != nil {
+			secretProperties.Expires = *secretResponse.Attributes.Expires
 		}
-		if secret.Attributes.NotBefore != nil {
-			secretProperties.NotBefore = *secret.Attributes.NotBefore
+		if secretResponse.Attributes.NotBefore != nil {
+			secretProperties.NotBefore = *secretResponse.Attributes.NotBefore
 		}
 	}
 
-	return &SecretResponse{CredentialsObject: credentialsObject, Properties: secretProperties}, nil
+	return *secretResponse.Value, secretProperties, nil
 }
 
 // Get a deleted credentials object from the key vault using the specified secret name.
