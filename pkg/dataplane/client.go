@@ -74,6 +74,8 @@ func NewClient(cloud string, authenticator policy.Policy, clientOpts *policy.Cli
 }
 
 func (c *ManagedIdentityClient) GetUserAssignedIdentities(ctx context.Context, request UserAssignedMSIRequest) (*UserAssignedIdentities, error) {
+	fmt.Printf("***** ManagedIdentityClient ***** GetUserAssignedIdentities request: %+v\n", request)
+
 	validate := validator.New(validator.WithRequiredStructEnabled())
 	validate.RegisterValidation(resourceIDsTag, validateResourceIDs)
 	if err := validate.Struct(request); err != nil {
