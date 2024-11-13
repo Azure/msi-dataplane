@@ -117,12 +117,14 @@ func validateUserAssignedMSIs(identities []*swagger.NestedCredentialsObject, res
 			return errNilMSI
 		}
 
-		// Print full object for debugging purposes
-		identityJSON, err := identity.MarshalJSON()
-		if err != nil {
-			return fmt.Errorf("failed to marshal identity object: %w", err)
-		}
-		fmt.Printf("***** ManagedIdentityClient ***** validateUserAssignedMSIs identity: %s\n", string(identityJSON))
+		/*
+			// Print full object for debugging purposes
+			identityJSON, err := identity.MarshalJSON()
+			if err != nil {
+				return fmt.Errorf("failed to marshal identity object: %w", err)
+			}
+			fmt.Printf("***** ManagedIdentityClient ***** validateUserAssignedMSIs identity: %s\n", string(identityJSON))
+		*/
 
 		// TODO - verify which fields are ok to be nil
 		if identity.ResourceID == nil {
