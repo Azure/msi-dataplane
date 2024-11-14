@@ -61,6 +61,15 @@ func (u UserAssignedIdentities) GetCredential(resourceID string) (*azidentity.Cl
 	return nil, errResourceIDNotFound
 }
 
+func getAzCoreCloud(cloud string) azcloud.Configuration {
+	switch cloud {
+	case AzureUSGovCloud:
+		return azcloud.AzureGovernment
+	default:
+		return azcloud.AzurePublic
+	}
+}
+
 func getClientCertificateCredential(identity swagger.NestedCredentialsObject, cloud string) (*azidentity.ClientCertificateCredential, error) {
 	// Double check nil pointers so we don't panic
 	fieldsToCheck := map[string]*string{
@@ -133,13 +142,4 @@ func validateUserAssignedMSIs(identities []*swagger.NestedCredentialsObject, res
 	}
 
 	return nil
-}
-
-func getAzCoreCloud(cloud string) azcloud.Configuration {
-	switch cloud {
-	case AzureUSGovCloud:
-		return azcloud.AzureGovernment
-	default:
-		return azcloud.AzurePublic
-	}
 }
