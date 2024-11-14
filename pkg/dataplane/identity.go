@@ -16,8 +16,8 @@ import (
 var (
 	// Errors returned when processing idenities
 	errDecodeClientSecret = errors.New("failed to decode client secret")
-	errInvalidResourceID  = errors.New("invalid resource ID")
 	errParseCertificate   = errors.New("failed to parse certificate")
+	errParseResourceID    = errors.New("failed to parse resource ID")
 	errNilField           = errors.New("expected non nil field in identity")
 	errNoUserAssignedMSIs = errors.New("credentials object does not contain user-assigned managed identities")
 	errResourceIDNotFound = errors.New("resource ID not found in user-assigned managed identity")
@@ -50,10 +50,20 @@ func (c CredentialsObject) IsUserAssigned() bool {
 
 // Get an AzIdentity credential for the given user-assigned identity resource ID
 // Clients can use the credential to get a token for the user-assigned identity
-func (u UserAssignedIdentities) GetCredential(resourceID string) (*azidentity.ClientCertificateCredential, error) {
+func (u UserAssignedIdentities) GetCredential(requestedResourceID string) (*azidentity.ClientCertificateCredential, error) {
+	requestedARMResourceID, err := arm.ParseResourceID(requestedResourceID)
+	if err != nil {
+		return nil, fmt.Errorf("%w for requested resource ID %s: %w", errParseResourceID, requestedResourceID, err)
+	}
+	requestedResourceID = requestedARMResourceID.String()
+
 	for _, id := range u.ExplicitIdentities {
 		if id != nil && id.ResourceID != nil {
-			if *id.ResourceID == resourceID {
+			idARMResourceID, err := arm.ParseResourceID(*id.ResourceID)
+			if err != nil {
+				return nil, fmt.Errorf("%w for identity resource ID %s: %w", errParseResourceID, *id.ResourceID, err)
+			}
+			if requestedResourceID == idARMResourceID.String() {
 				return getClientCertificateCredential(*id, u.cloud)
 			}
 		}
@@ -135,7 +145,7 @@ func validateUserAssignedMSIs(identities []*swagger.NestedCredentialsObject, res
 		}
 		armResourceID, err := arm.ParseResourceID(*identity.ResourceID)
 		if err != nil {
-			return fmt.Errorf("%w for received resource ID %s: %w", errInvalidResourceID, *identity.ResourceID, err)
+			return fmt.Errorf("%w for received resource ID %s: %w", errParseResourceID, *identity.ResourceID, err)
 		}
 
 		resourceIDMap[armResourceID.String()] = true
@@ -144,7 +154,7 @@ func validateUserAssignedMSIs(identities []*swagger.NestedCredentialsObject, res
 	for _, resourceID := range resourceIDs {
 		armResourceID, err := arm.ParseResourceID(resourceID)
 		if err != nil {
-			return fmt.Errorf("%w for requested resource ID %s: %w", errInvalidResourceID, resourceID, err)
+			return fmt.Errorf("%w for requested resource ID %s: %w", errParseResourceID, resourceID, err)
 		}
 		if _, ok := resourceIDMap[armResourceID.String()]; !ok {
 			return fmt.Errorf("%w, resource ID %s", errResourceIDNotFound, resourceID)

@@ -118,7 +118,7 @@ func TestGetCredential(t *testing.T) {
 				},
 			},
 			resourceID:  "",
-			expectedErr: errResourceIDNotFound,
+			expectedErr: errParseResourceID,
 		},
 		{
 			name:         "no identities present",
@@ -127,7 +127,35 @@ func TestGetCredential(t *testing.T) {
 			expectedErr:  errResourceIDNotFound,
 		},
 		{
-			name: "Invalid client secret",
+			name: "invalid requested resourceID",
+			uaIdentities: UserAssignedIdentities{
+				CredentialsObject: CredentialsObject{
+					CredentialsObject: swagger.CredentialsObject{
+						ExplicitIdentities: []*swagger.NestedCredentialsObject{
+							test.GetTestMSI(test.ValidResourceID),
+						},
+					},
+				},
+			},
+			resourceID:  test.Bogus,
+			expectedErr: errParseResourceID,
+		},
+		{
+			name: "invalid identity resourceID",
+			uaIdentities: UserAssignedIdentities{
+				CredentialsObject: CredentialsObject{
+					CredentialsObject: swagger.CredentialsObject{
+						ExplicitIdentities: []*swagger.NestedCredentialsObject{
+							test.GetTestMSI(test.Bogus),
+						},
+					},
+				},
+			},
+			resourceID:  test.ValidResourceID,
+			expectedErr: errParseResourceID,
+		},
+		{
+			name: "invalid client secret",
 			uaIdentities: UserAssignedIdentities{
 				CredentialsObject: CredentialsObject{
 					CredentialsObject: swagger.CredentialsObject{
@@ -308,7 +336,7 @@ func TestValidateUserAssignedMSI(t *testing.T) {
 				return []*swagger.NestedCredentialsObject{testMSI}
 			},
 			resourceIDs: []string{test.ValidResourceID},
-			expectedErr: errInvalidResourceID,
+			expectedErr: errParseResourceID,
 		},
 		{
 			name: "invalid requested resourceID",
@@ -317,7 +345,7 @@ func TestValidateUserAssignedMSI(t *testing.T) {
 				return []*swagger.NestedCredentialsObject{testMSI}
 			},
 			resourceIDs: []string{test.Bogus},
-			expectedErr: errInvalidResourceID,
+			expectedErr: errParseResourceID,
 		},
 		{
 			name: "success",
