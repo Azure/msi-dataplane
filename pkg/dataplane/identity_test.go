@@ -302,12 +302,21 @@ func TestValidateUserAssignedMSI(t *testing.T) {
 			expectedErr: errResourceIDNotFound,
 		},
 		{
-			name: "invalid resourceID",
+			name: "invalid response resourceID",
 			getMSI: func() []*swagger.NestedCredentialsObject {
 				testMSI := test.GetTestMSI(test.Bogus)
 				return []*swagger.NestedCredentialsObject{testMSI}
 			},
 			resourceIDs: []string{test.ValidResourceID},
+			expectedErr: errInvalidResourceID,
+		},
+		{
+			name: "invalid requested resourceID",
+			getMSI: func() []*swagger.NestedCredentialsObject {
+				testMSI := test.GetTestMSI(test.ValidResourceID)
+				return []*swagger.NestedCredentialsObject{testMSI}
+			},
+			resourceIDs: []string{test.Bogus},
 			expectedErr: errInvalidResourceID,
 		},
 		{
