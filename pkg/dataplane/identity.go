@@ -129,12 +129,12 @@ func validateUserAssignedMSIs(identities []*swagger.NestedCredentialsObject, res
 		if identity.ResourceID == nil {
 			return fmt.Errorf("%w, resource ID", errNilField)
 		}
-		_, err := arm.ParseResourceID(*identity.ResourceID)
+		armResourceID, err := arm.ParseResourceID(*identity.ResourceID)
 		if err != nil {
-			return fmt.Errorf("%w for resource ID %s: %w", errInvalidResourceID, *identity.ResourceID, err)
+			return fmt.Errorf("%w for received resource ID %s: %w", errInvalidResourceID, *identity.ResourceID, err)
 		}
 
-		resourceIDMap[*identity.ResourceID] = true
+		resourceIDMap[armResourceID.String()] = true
 	}
 
 	for _, resourceID := range resourceIDs {
