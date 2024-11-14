@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore/arm"
 	azcloud "github.com/Azure/azure-sdk-for-go/sdk/azcore/cloud"
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/Azure/msi-dataplane/pkg/dataplane/swagger"
@@ -15,6 +16,7 @@ import (
 var (
 	// Errors returned when processing idenities
 	errDecodeClientSecret = errors.New("failed to decode client secret")
+	errInvalidResourceID  = errors.New("invalid resource ID")
 	errParseCertificate   = errors.New("failed to parse certificate")
 	errNilField           = errors.New("expected non nil field in identity")
 	errNoUserAssignedMSIs = errors.New("credentials object does not contain user-assigned managed identities")
@@ -127,6 +129,11 @@ func validateUserAssignedMSIs(identities []*swagger.NestedCredentialsObject, res
 		if identity.ResourceID == nil {
 			return fmt.Errorf("%w, resource ID", errNilField)
 		}
+		_, err := arm.ParseResourceID(*identity.ResourceID)
+		if err != nil {
+			return fmt.Errorf("%w for resource ID %s: %w", errInvalidResourceID, *identity.ResourceID, err)
+		}
+
 		resourceIDMap[*identity.ResourceID] = true
 	}
 
