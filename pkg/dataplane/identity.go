@@ -4,7 +4,6 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"reflect"
 	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
@@ -125,12 +124,8 @@ func validateUserAssignedMSIs(identities []*swagger.NestedCredentialsObject, res
 		if identity == nil {
 			return errNilMSI
 		}
-
-		v := reflect.ValueOf(*identity)
-		for i := 0; i < v.NumField(); i++ {
-			if v.Field(i).IsNil() {
-				return fmt.Errorf("%w, field %s", errNilField, v.Type().Field(i).Name)
-			}
+		if identity.ResourceID == nil {
+			return fmt.Errorf("%w, resource ID", errNilField)
 		}
 		resourceIDMap[*identity.ResourceID] = true
 	}
