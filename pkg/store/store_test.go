@@ -57,7 +57,7 @@ func TestDeleteCredentialsObject(t *testing.T) {
 			tc.goMockCall(kvClient)
 
 			kvStore := NewMsiKeyVaultStore(kvClient)
-			if err := kvStore.DeleteCredentialsObject(context.Background(), mockSecretName); !errors.Is(err, tc.expectedError) {
+			if err := kvStore.DeleteSecret(context.Background(), mockSecretName); !errors.Is(err, tc.expectedError) {
 				t.Errorf("Expected %s but got: %s", tc.expectedError, err)
 			}
 		})
@@ -262,7 +262,7 @@ func TestNewDeletedListSecretsPager(t *testing.T) {
 			tc.goMockCall(kvClient)
 
 			kvStore := NewMsiKeyVaultStore(kvClient)
-			if pager := kvStore.GetDeletedCredentialsObjectPager(); pager == nil {
+			if pager := kvStore.GetDeletedSecretObjectPager(); pager == nil {
 				t.Error("Expected pager but got nil")
 			}
 		})
@@ -295,7 +295,7 @@ func TestNewListSecretsPager(t *testing.T) {
 			tc.goMockCall(kvClient)
 
 			kvStore := NewMsiKeyVaultStore(kvClient)
-			if pager := kvStore.GetCredentialsObjectPager(); pager == nil {
+			if pager := kvStore.GetSecretObjectPager(); pager == nil {
 				t.Error("Expected pager but got nil")
 			}
 		})
@@ -336,7 +336,7 @@ func TestPurgeDeletedSecret(t *testing.T) {
 			tc.goMockCall(kvClient)
 
 			kvStore := NewMsiKeyVaultStore(kvClient)
-			if err := kvStore.PurgeDeletedCredentialsObject(context.Background(), mockSecretName); !errors.Is(err, tc.expectedError) {
+			if err := kvStore.PurgeDeletedSecretObject(context.Background(), mockSecretName); !errors.Is(err, tc.expectedError) {
 				t.Errorf("Expected %s but got: %s", tc.expectedError, err)
 			}
 		})

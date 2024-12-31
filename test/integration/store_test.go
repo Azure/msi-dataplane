@@ -89,7 +89,7 @@ func TestStore(t *testing.T) {
 	}
 
 	// Delete the credentials object from the store
-	if err := msiStore.DeleteCredentialsObject(context.Background(), bogus); err != nil {
+	if err := msiStore.DeleteSecret(context.Background(), bogus); err != nil {
 		t.Errorf("Failed to delete credentials object: %s", err)
 	}
 }
