@@ -67,26 +67,35 @@ func TestDeleteCredentialsObject(t *testing.T) {
 func TestGetCredentialsObject(t *testing.T) {
 	t.Parallel()
 
+	enabled := true
+	expires := time.Now()
+	notBefore := time.Now()
 	bogusValue := test.Bogus
 	testCredentialsObject := dataplane.CredentialsObject{
 		Values: swagger.CredentialsObject{
 			ClientSecret: &bogusValue,
 		},
 	}
+<<<<<<< HEAD
 	testCredentialsObjectBuffer, err := testCredentialsObject.Values.MarshalJSON()
+=======
+
+	testCredentialsObjectSecretResponse := CredentialsObjectSecretResponse{
+		Properties: SecretProperties{
+			Enabled:   enabled,
+			Expires:   expires,
+			Name:      mockSecretName,
+			NotBefore: notBefore,
+		},
+		CredentialsObject: testCredentialsObject,
+	}
+
+	testCredentialsObjectBuffer, err := testCredentialsObject.MarshalJSON()
+>>>>>>> update UT to verify entire response
 	if err != nil {
 		t.Fatalf("Failed to encode test credentials object: %s", err)
 	}
 	testCredentialsObjectString := string(testCredentialsObjectBuffer)
-	enabled := true
-	expires := time.Now()
-	notBefore := time.Now()
-	testProperties := SecretProperties{
-		Enabled:   enabled,
-		Expires:   expires,
-		Name:      mockSecretName,
-		NotBefore: notBefore,
-	}
 	testGetSecretResponse := azsecrets.GetSecretResponse{
 		Secret: azsecrets.Secret{
 			Value: &testCredentialsObjectString,
@@ -143,11 +152,8 @@ func TestGetCredentialsObject(t *testing.T) {
 				t.Errorf("Expected error %s but got: %s", tc.expectedError, err)
 			}
 			if err == nil {
-				if diff := cmp.Diff(response.CredentialsObject, testCredentialsObject); diff != "" {
-					t.Errorf("Expected credentials object %+v\n but got: %+v", testCredentialsObject, response.CredentialsObject)
-				}
-				if diff := cmp.Diff(response.Properties, testProperties); diff != "" {
-					t.Errorf("Expected credentials object properties %+v\n but got: %+v", testProperties, response.Properties)
+				if diff := cmp.Diff(response, &testCredentialsObjectSecretResponse); diff != "" {
+					t.Errorf("Expected credentials object response %+v\n but got: %+v", &testCredentialsObjectSecretResponse, response)
 				}
 			}
 		})
@@ -157,24 +163,29 @@ func TestGetCredentialsObject(t *testing.T) {
 func TestGetNestedCredentialsObject(t *testing.T) {
 	t.Parallel()
 
+	enabled := true
+	expires := time.Now()
+	notBefore := time.Now()
 	bogusValue := test.Bogus
 	testNestedCredentialsObject := swagger.NestedCredentialsObject{
 		ClientSecret: &bogusValue,
 	}
+
+	testNestedCredentialsObjectSecretResponse := NestedCredentialsObjectSecretResponse{
+		Properties: SecretProperties{
+			Enabled:   enabled,
+			Expires:   expires,
+			Name:      mockSecretName,
+			NotBefore: notBefore,
+		},
+		NestedCredentialsObject: testNestedCredentialsObject,
+	}
+
 	testNestedCredentialsObjectBuffer, err := testNestedCredentialsObject.MarshalJSON()
 	if err != nil {
 		t.Fatalf("Failed to encode test nested credentials object: %s", err)
 	}
 	testNestedCredentialsObjectString := string(testNestedCredentialsObjectBuffer)
-	enabled := true
-	expires := time.Now()
-	notBefore := time.Now()
-	testProperties := SecretProperties{
-		Enabled:   enabled,
-		Expires:   expires,
-		Name:      mockSecretName,
-		NotBefore: notBefore,
-	}
 	testGetSecretResponse := azsecrets.GetSecretResponse{
 		Secret: azsecrets.Secret{
 			Value: &testNestedCredentialsObjectString,
@@ -231,11 +242,8 @@ func TestGetNestedCredentialsObject(t *testing.T) {
 				t.Errorf("Expected error %s but got: %s", tc.expectedError, err)
 			}
 			if err == nil {
-				if diff := cmp.Diff(response.NestedCredentialsObject, testNestedCredentialsObject); diff != "" {
-					t.Errorf("Expected nested credentials object %+v\n but got: %+v", testNestedCredentialsObject, response.NestedCredentialsObject)
-				}
-				if diff := cmp.Diff(response.Properties, testProperties); diff != "" {
-					t.Errorf("Expected nested credentials object properties %+v\n but got: %+v", testProperties, response.Properties)
+				if diff := cmp.Diff(response, &testNestedCredentialsObjectSecretResponse); diff != "" {
+					t.Errorf("Expected nested credentials object %+v\n but got: %+v", &testNestedCredentialsObjectSecretResponse, response.NestedCredentialsObject)
 				}
 			}
 		})
@@ -245,19 +253,33 @@ func TestGetNestedCredentialsObject(t *testing.T) {
 func TestDeletedGetCredentialsObject(t *testing.T) {
 	t.Parallel()
 
+	deletedDate := time.Now()
+	recoveryLevel := "Purgable"
 	bogusValue := test.Bogus
 	testCredentialsObject := dataplane.CredentialsObject{
 		Values: swagger.CredentialsObject{
 			ClientSecret: &bogusValue,
 		},
 	}
+<<<<<<< HEAD
 	testCredentialsObjectBuffer, err := testCredentialsObject.Values.MarshalJSON()
+=======
+
+	testDeletedCredentialsObjectSecretResponse := DeletedCredentialsObjectSecretResponse{
+		Properties: DeletedSecretProperties{
+			Name:          mockSecretName,
+			RecoveryLevel: recoveryLevel,
+			DeletedDate:   deletedDate,
+		},
+		CredentialsObject: testCredentialsObject,
+	}
+
+	testCredentialsObjectBuffer, err := testCredentialsObject.MarshalJSON()
+>>>>>>> update UT to verify entire response
 	if err != nil {
 		t.Fatalf("Failed to encode test credentials object: %s", err)
 	}
 	testCredentialsObjectString := string(testCredentialsObjectBuffer)
-	deletedDate := time.Now()
-	recoveryLevel := "Purgable"
 	testGetDeletedSecretResponse := azsecrets.GetDeletedSecretResponse{
 		DeletedSecret: azsecrets.DeletedSecret{
 			Value: &testCredentialsObjectString,
@@ -313,11 +335,8 @@ func TestDeletedGetCredentialsObject(t *testing.T) {
 				t.Errorf("Expected error %s but got: %s", tc.expectedError, err)
 			}
 			if err == nil {
-				if diff := cmp.Diff(response.CredentialsObject, testCredentialsObject); diff != "" {
-					t.Errorf("Expected credentials object %+v\n but got: %+v", testCredentialsObject, response.CredentialsObject)
-				}
-				if !response.Properties.DeletedDate.Equal(deletedDate) {
-					t.Errorf("Expected deletedDate %s but got: %s", deletedDate, response.Properties.DeletedDate)
+				if diff := cmp.Diff(response, &testDeletedCredentialsObjectSecretResponse); diff != "" {
+					t.Errorf("Expected deleted credentials object response %+v\n but got: %+v", &testDeletedCredentialsObjectSecretResponse, response)
 				}
 			}
 		})
@@ -327,17 +346,27 @@ func TestDeletedGetCredentialsObject(t *testing.T) {
 func TestGetDeletedNestedCredentialsObject(t *testing.T) {
 	t.Parallel()
 
+	deletedDate := time.Now()
+	recoveryLevel := "Purgable"
 	bogusValue := test.Bogus
 	testNestedCredentialsObject := swagger.NestedCredentialsObject{
 		ClientSecret: &bogusValue,
 	}
+
+	testDeletedNestedCredentialsObjectSecretResponse := DeletedNestedCredentialsObjectSecretResponse{
+		Properties: DeletedSecretProperties{
+			Name:          mockSecretName,
+			RecoveryLevel: recoveryLevel,
+			DeletedDate:   deletedDate,
+		},
+		NestedCredentialsObject: testNestedCredentialsObject,
+	}
+
 	testNestedCredentialsObjectBuffer, err := testNestedCredentialsObject.MarshalJSON()
 	if err != nil {
 		t.Fatalf("Failed to encode test nested credentials object: %s", err)
 	}
 	testNestedCredentialsObjectString := string(testNestedCredentialsObjectBuffer)
-	deletedDate := time.Now()
-	recoveryLevel := "Purgable"
 	testGetDeletedSecretResponse := azsecrets.GetDeletedSecretResponse{
 		DeletedSecret: azsecrets.DeletedSecret{
 			Value: &testNestedCredentialsObjectString,
@@ -393,11 +422,8 @@ func TestGetDeletedNestedCredentialsObject(t *testing.T) {
 				t.Errorf("Expected error %s but got: %s", tc.expectedError, err)
 			}
 			if err == nil {
-				if diff := cmp.Diff(response.NestedCredentialsObject, testNestedCredentialsObject); diff != "" {
-					t.Errorf("Expected nested credentials object %+v\n but got: %+v", testNestedCredentialsObject, response.NestedCredentialsObject)
-				}
-				if !response.Properties.DeletedDate.Equal(deletedDate) {
-					t.Errorf("Expected deletedDate %s but got: %s", deletedDate, response.Properties.DeletedDate)
+				if diff := cmp.Diff(response, &testDeletedNestedCredentialsObjectSecretResponse); diff != "" {
+					t.Errorf("Expected deleted nested credentials object response %+v\n but got: %+v", testNestedCredentialsObject, response.NestedCredentialsObject)
 				}
 			}
 		})
