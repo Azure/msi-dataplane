@@ -5,7 +5,6 @@ package store
 import (
 	"context"
 	"errors"
-	"reflect"
 	"testing"
 	"time"
 
@@ -15,6 +14,7 @@ import (
 	"github.com/Azure/msi-dataplane/pkg/dataplane"
 	"github.com/Azure/msi-dataplane/pkg/dataplane/swagger"
 	mock "github.com/Azure/msi-dataplane/pkg/store/mock_kvclient"
+	"github.com/google/go-cmp/cmp"
 	"go.uber.org/mock/gomock"
 )
 
@@ -68,7 +68,6 @@ func TestGetCredentialsObject(t *testing.T) {
 	t.Parallel()
 
 	bogusValue := test.Bogus
-	testNestedCredentialsObject := swagger.NestedCredentialsObject{}
 	testCredentialsObject := dataplane.CredentialsObject{
 		Values: swagger.CredentialsObject{
 			ClientSecret: &bogusValue,
@@ -82,6 +81,12 @@ func TestGetCredentialsObject(t *testing.T) {
 	enabled := true
 	expires := time.Now()
 	notBefore := time.Now()
+	testProperties := SecretProperties{
+		Enabled:   enabled,
+		Expires:   expires,
+		Name:      mockSecretName,
+		NotBefore: notBefore,
+	}
 	testGetSecretResponse := azsecrets.GetSecretResponse{
 		Secret: azsecrets.Secret{
 			Value: &testCredentialsObjectString,
@@ -138,20 +143,11 @@ func TestGetCredentialsObject(t *testing.T) {
 				t.Errorf("Expected error %s but got: %s", tc.expectedError, err)
 			}
 			if err == nil {
-				if !reflect.DeepEqual(testCredentialsObject, response.CredentialsObject) {
+				if diff := cmp.Diff(response.CredentialsObject, testCredentialsObject); diff != "" {
 					t.Errorf("Expected credentials object %+v\n but got: %+v", testCredentialsObject, response.CredentialsObject)
 				}
-				if !reflect.DeepEqual(testNestedCredentialsObject, response.NestedCredentialsObject) {
-					t.Errorf("Expected nested credentials object %+v\n but got: %+v", testNestedCredentialsObject, response.NestedCredentialsObject)
-				}
-				if response.Properties.Enabled != enabled {
-					t.Errorf("Expected enabled %t but got: %t", enabled, response.Properties.Enabled)
-				}
-				if !response.Properties.Expires.Equal(expires) {
-					t.Errorf("Expected expires %s but got: %s", expires, response.Properties.Expires)
-				}
-				if !response.Properties.NotBefore.Equal(notBefore) {
-					t.Errorf("Expected notBefore %s but got: %s", notBefore, response.Properties.NotBefore)
+				if diff := cmp.Diff(response.Properties, testProperties); diff != "" {
+					t.Errorf("Expected credentials object properties %+v\n but got: %+v", testProperties, response.Properties)
 				}
 			}
 		})
@@ -162,7 +158,6 @@ func TestGetNestedCredentialsObject(t *testing.T) {
 	t.Parallel()
 
 	bogusValue := test.Bogus
-	testCredentialsObject := dataplane.CredentialsObject{}
 	testNestedCredentialsObject := swagger.NestedCredentialsObject{
 		ClientSecret: &bogusValue,
 	}
@@ -174,6 +169,12 @@ func TestGetNestedCredentialsObject(t *testing.T) {
 	enabled := true
 	expires := time.Now()
 	notBefore := time.Now()
+	testProperties := SecretProperties{
+		Enabled:   enabled,
+		Expires:   expires,
+		Name:      mockSecretName,
+		NotBefore: notBefore,
+	}
 	testGetSecretResponse := azsecrets.GetSecretResponse{
 		Secret: azsecrets.Secret{
 			Value: &testNestedCredentialsObjectString,
@@ -230,20 +231,11 @@ func TestGetNestedCredentialsObject(t *testing.T) {
 				t.Errorf("Expected error %s but got: %s", tc.expectedError, err)
 			}
 			if err == nil {
-				if !reflect.DeepEqual(testCredentialsObject, response.CredentialsObject) {
-					t.Errorf("Expected credentials object %+v\n but got: %+v", testCredentialsObject, response.CredentialsObject)
-				}
-				if !reflect.DeepEqual(testNestedCredentialsObject, response.NestedCredentialsObject) {
+				if diff := cmp.Diff(response.NestedCredentialsObject, testNestedCredentialsObject); diff != "" {
 					t.Errorf("Expected nested credentials object %+v\n but got: %+v", testNestedCredentialsObject, response.NestedCredentialsObject)
 				}
-				if response.Properties.Enabled != enabled {
-					t.Errorf("Expected enabled %t but got: %t", enabled, response.Properties.Enabled)
-				}
-				if !response.Properties.Expires.Equal(expires) {
-					t.Errorf("Expected expires %s but got: %s", expires, response.Properties.Expires)
-				}
-				if !response.Properties.NotBefore.Equal(notBefore) {
-					t.Errorf("Expected notBefore %s but got: %s", notBefore, response.Properties.NotBefore)
+				if diff := cmp.Diff(response.Properties, testProperties); diff != "" {
+					t.Errorf("Expected nested credentials object properties %+v\n but got: %+v", testProperties, response.Properties)
 				}
 			}
 		})
@@ -254,7 +246,6 @@ func TestDeletedGetCredentialsObject(t *testing.T) {
 	t.Parallel()
 
 	bogusValue := test.Bogus
-	testNestedCredentialsObject := swagger.NestedCredentialsObject{}
 	testCredentialsObject := dataplane.CredentialsObject{
 		Values: swagger.CredentialsObject{
 			ClientSecret: &bogusValue,
@@ -322,11 +313,8 @@ func TestDeletedGetCredentialsObject(t *testing.T) {
 				t.Errorf("Expected error %s but got: %s", tc.expectedError, err)
 			}
 			if err == nil {
-				if !reflect.DeepEqual(testCredentialsObject, response.CredentialsObject) {
+				if diff := cmp.Diff(response.CredentialsObject, testCredentialsObject); diff != "" {
 					t.Errorf("Expected credentials object %+v\n but got: %+v", testCredentialsObject, response.CredentialsObject)
-				}
-				if !reflect.DeepEqual(testNestedCredentialsObject, response.NestedCredentialsObject) {
-					t.Errorf("Expected nested credentials object %+v\n but got: %+v", testNestedCredentialsObject, response.NestedCredentialsObject)
 				}
 				if !response.Properties.DeletedDate.Equal(deletedDate) {
 					t.Errorf("Expected deletedDate %s but got: %s", deletedDate, response.Properties.DeletedDate)
@@ -340,7 +328,6 @@ func TestGetDeletedNestedCredentialsObject(t *testing.T) {
 	t.Parallel()
 
 	bogusValue := test.Bogus
-	testCredentialsObject := dataplane.CredentialsObject{}
 	testNestedCredentialsObject := swagger.NestedCredentialsObject{
 		ClientSecret: &bogusValue,
 	}
@@ -406,10 +393,7 @@ func TestGetDeletedNestedCredentialsObject(t *testing.T) {
 				t.Errorf("Expected error %s but got: %s", tc.expectedError, err)
 			}
 			if err == nil {
-				if !reflect.DeepEqual(testCredentialsObject, response.CredentialsObject) {
-					t.Errorf("Expected credentials object %+v\n but got: %+v", testCredentialsObject, response.CredentialsObject)
-				}
-				if !reflect.DeepEqual(testNestedCredentialsObject, response.NestedCredentialsObject) {
+				if diff := cmp.Diff(response.NestedCredentialsObject, testNestedCredentialsObject); diff != "" {
 					t.Errorf("Expected nested credentials object %+v\n but got: %+v", testNestedCredentialsObject, response.NestedCredentialsObject)
 				}
 				if !response.Properties.DeletedDate.Equal(deletedDate) {
