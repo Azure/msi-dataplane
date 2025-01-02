@@ -3,6 +3,7 @@ package integration
 import (
 	"context"
 	"os"
+	"os/signal"
 	"path"
 	"testing"
 	"time"
@@ -31,6 +32,9 @@ const (
 
 func TestStore(t *testing.T) {
 	t.Parallel()
+
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer stop()
 
 	recordMode := getRecordMode()
 
@@ -88,13 +92,13 @@ func TestStore(t *testing.T) {
 		CredentialsObject: testCredentialsObject,
 	}
 
-	if err := msiStore.SetCredentialsObject(context.Background(), props, testCredentialsObject); err != nil {
+	if err := msiStore.SetCredentialsObject(ctx, props, testCredentialsObject); err != nil {
 		// Fatal here since rest of test cannot proceed
 		t.Fatalf("Failed to set credentials object: %s", err)
 	}
 
 	// Get the credentials object from the store
-	resp, err := msiStore.GetCredentialsObject(context.Background(), bogus)
+	resp, err := msiStore.GetCredentialsObject(ctx, bogus)
 	if err != nil {
 		// Fatal here since rest of test cannot proceed
 		t.Fatalf("Failed to get credentials object: %s", err)
@@ -111,13 +115,16 @@ func TestStore(t *testing.T) {
 	}
 
 	// Delete the credentials object from the store
-	if err := msiStore.DeleteSecret(context.Background(), bogus); err != nil {
+	if err := msiStore.DeleteSecret(ctx, bogus); err != nil {
 		t.Errorf("Failed to delete credentials object: %s", err)
 	}
 }
 
 func TestNestedCredentialsObjectStore(t *testing.T) {
 	t.Parallel()
+
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer stop()
 
 	recordMode := getRecordMode()
 
@@ -173,13 +180,13 @@ func TestNestedCredentialsObjectStore(t *testing.T) {
 		NestedCredentialsObject: testNestedCredentialsObject,
 	}
 
-	if err := msiStore.SetNestedCredentialsObject(context.Background(), props, testNestedCredentialsObject); err != nil {
+	if err := msiStore.SetNestedCredentialsObject(ctx, props, testNestedCredentialsObject); err != nil {
 		// Fatal here since rest of test cannot proceed
 		t.Fatalf("Failed to set nested credentials object: %s", err)
 	}
 
 	// Get the credentials object from the store
-	resp, err := msiStore.GetNestedCredentialsObject(context.Background(), bogus)
+	resp, err := msiStore.GetNestedCredentialsObject(ctx, bogus)
 	if err != nil {
 		// Fatal here since rest of test cannot proceed
 		t.Fatalf("Failed to get nested credentials object: %s", err)
@@ -190,7 +197,7 @@ func TestNestedCredentialsObjectStore(t *testing.T) {
 	}
 
 	// Delete the credentials object from the store
-	if err := msiStore.DeleteSecret(context.Background(), bogus); err != nil {
+	if err := msiStore.DeleteSecret(ctx, bogus); err != nil {
 		t.Errorf("Failed to nested delete credentials object: %s", err)
 	}
 }
