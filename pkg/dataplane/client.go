@@ -48,6 +48,7 @@ var (
 	errInvalidRequest = errors.New("invalid request")
 	errNilMSI         = errors.New("expected non-nil user-assigned managed identity")
 	errNumberOfMSIs   = errors.New("returned MSIs does not match number of requested MSIs")
+	errGetNestedCreds = errors.New("failed to get nested credentials object")
 )
 
 // TODO - Add parameter to specify module name in azcore.NewClient()
@@ -73,7 +74,7 @@ func NewClient(cloud string, authenticator policy.Policy, clientOpts *policy.Cli
 	return &ManagedIdentityClient{swaggerClient: swaggerClient, cloud: cloud}, nil
 }
 
-func (c *ManagedIdentityClient) GetUserAssignedIdentities(ctx context.Context, request UserAssignedMSIRequest) (*UserAssignedIdentities, error) {
+func (c *ManagedIdentityClient) getUserAssignedIdentities(ctx context.Context, request UserAssignedMSIRequest) (*CredentialsObject, error) {
 	validate := validator.New(validator.WithRequiredStructEnabled())
 	validate.RegisterValidation(resourceIDsTag, validateResourceIDs)
 	if err := validate.Struct(request); err != nil {
@@ -107,7 +108,25 @@ func (c *ManagedIdentityClient) GetUserAssignedIdentities(ctx context.Context, r
 	}
 
 	credentialsObject := CredentialsObject{CredentialsObject: creds.CredentialsObject}
-	return NewUserAssignedIdentities(credentialsObject, c.cloud)
+	return NewCredentialsObjectUAIdentities(credentialsObject, c.cloud)
+}
+
+func (c *ManagedIdentityClient) GetCredentialsObjectUserAssignedIdentities(ctx context.Context, request UserAssignedMSIRequest) (*CredentialsObject, error) {
+	return c.getUserAssignedIdentities(ctx, request)
+}
+
+func (c *ManagedIdentityClient) GetNestedCredentialsObjectUserAssignedIdentities(ctx context.Context, request UserAssignedMSIRequest) (*NestedCredentialsObject, error) {
+	ua, err := c.getUserAssignedIdentities(ctx, request)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(ua.CredentialsObject.ExplicitIdentities) == 0 ||
+		ua.CredentialsObject.ExplicitIdentities[0] == nil {
+		return nil, errGetNestedCreds
+	}
+
+	return NewNestedCredentialsObjectUAIdentities(*ua.CredentialsObject.ExplicitIdentities[0], c.cloud)
 }
 
 func validateResourceIDs(fl validator.FieldLevel) bool {

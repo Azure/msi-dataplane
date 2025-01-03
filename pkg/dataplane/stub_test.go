@@ -23,6 +23,7 @@ func TestNewStub(t *testing.T) {
 		swagger.CredentialsObject{
 			ExplicitIdentities: []*swagger.NestedCredentialsObject{uaMSI},
 		},
+		AzurePublicCloud,
 	}
 	testStub := NewStub([]*CredentialsObject{credObject})
 	if testStub == nil {
@@ -37,6 +38,7 @@ func TestDo(t *testing.T) {
 		swagger.CredentialsObject{
 			ExplicitIdentities: []*swagger.NestedCredentialsObject{uaMSI},
 		},
+		AzurePublicCloud,
 	}
 	credRequest := &swagger.CredRequestDefinition{
 		IdentityIDs: []*string{test.StringPtr(test.ValidResourceID)},
@@ -118,6 +120,7 @@ func TestPost(t *testing.T) {
 		swagger.CredentialsObject{
 			ExplicitIdentities: []*swagger.NestedCredentialsObject{uaMSI},
 		},
+		AzurePublicCloud,
 	}
 
 	testCases := []struct {
@@ -179,6 +182,7 @@ func TestStubWithClient(t *testing.T) {
 		swagger.CredentialsObject{
 			ExplicitIdentities: []*swagger.NestedCredentialsObject{uaMSI},
 		},
+		AzurePublicCloud,
 	}
 	testStub := NewStub([]*CredentialsObject{credObject})
 	clientOpts := &policy.ClientOptions{
@@ -193,7 +197,7 @@ func TestStubWithClient(t *testing.T) {
 		IdentityURL: test.ValidIdentityURL,
 		TenantID:    test.ValidTenantID,
 	}
-	identities, err := client.GetUserAssignedIdentities(context.Background(), request)
+	identities, err := client.GetCredentialsObjectUserAssignedIdentities(context.Background(), request)
 	if err != nil {
 		t.Fatalf("unable to get user assigned msi: %s", err)
 	}

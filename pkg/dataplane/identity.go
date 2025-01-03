@@ -27,19 +27,31 @@ var (
 // swagger.Credentials object can represent either system or user-assigned managed identity
 type CredentialsObject struct {
 	swagger.CredentialsObject
-}
-
-type UserAssignedIdentities struct {
-	CredentialsObject
 	cloud string
 }
 
-// Constructor for UserAssignedIdentities object
-func NewUserAssignedIdentities(c CredentialsObject, cloud string) (*UserAssignedIdentities, error) {
+// NestedCredentialsObject is a wrapper around the swagger.NestedCredentialsObject to add additional functionality
+// swagger.NestedCredentials object can represent only user-assigned managed identity
+type NestedCredentialsObject struct {
+	swagger.NestedCredentialsObject
+	cloud string
+}
+
+type UserAssignedIdentities interface {
+	GetCredential(requestedResourceID string) (*azidentity.ClientCertificateCredential, error)
+}
+
+// Constructor for Credentials Object UserAssignedIdentities
+func NewCredentialsObjectUAIdentities(c CredentialsObject, cloud string) (*CredentialsObject, error) {
 	if !c.IsUserAssigned() {
 		return nil, errNoUserAssignedMSIs
 	}
-	return &UserAssignedIdentities{CredentialsObject: c, cloud: cloud}, nil
+	return &CredentialsObject{CredentialsObject: c.CredentialsObject, cloud: cloud}, nil
+}
+
+// Constructor for Nested Credentials Object UserAssignedIdentities
+func NewNestedCredentialsObjectUAIdentities(c swagger.NestedCredentialsObject, cloud string) (*NestedCredentialsObject, error) {
+	return &NestedCredentialsObject{NestedCredentialsObject: c, cloud: cloud}, nil
 }
 
 // This method may be used by clients to check if they can use the object as a user-assigned managed identity
@@ -48,24 +60,46 @@ func (c CredentialsObject) IsUserAssigned() bool {
 	return len(c.ExplicitIdentities) > 0
 }
 
-// Get an AzIdentity credential for the given user-assigned identity resource ID
+// Get an AzIdentity credential for the given credential object user-assigned identity resource ID
 // Clients can use the credential to get a token for the user-assigned identity
-func (u UserAssignedIdentities) GetCredential(requestedResourceID string) (*azidentity.ClientCertificateCredential, error) {
+func (c CredentialsObject) GetCredential(requestedResourceID string) (*azidentity.ClientCertificateCredential, error) {
 	requestedARMResourceID, err := arm.ParseResourceID(requestedResourceID)
 	if err != nil {
 		return nil, fmt.Errorf("%w for requested resource ID %s: %w", errParseResourceID, requestedResourceID, err)
 	}
 	requestedResourceID = requestedARMResourceID.String()
 
-	for _, id := range u.ExplicitIdentities {
+	for _, id := range c.ExplicitIdentities {
 		if id != nil && id.ResourceID != nil {
 			idARMResourceID, err := arm.ParseResourceID(*id.ResourceID)
 			if err != nil {
 				return nil, fmt.Errorf("%w for identity resource ID %s: %w", errParseResourceID, *id.ResourceID, err)
 			}
 			if requestedResourceID == idARMResourceID.String() {
-				return getClientCertificateCredential(*id, u.cloud)
+				return getClientCertificateCredential(*id, c.cloud)
 			}
+		}
+	}
+
+	return nil, errResourceIDNotFound
+}
+
+// Get an AzIdentity credential for the given nested credential object user-assigned identity resource ID
+// Clients can use the credential to get a token for the user-assigned identity
+func (n NestedCredentialsObject) GetCredential(requestedResourceID string) (*azidentity.ClientCertificateCredential, error) {
+	requestedARMResourceID, err := arm.ParseResourceID(requestedResourceID)
+	if err != nil {
+		return nil, fmt.Errorf("%w for requested resource ID %s: %w", errParseResourceID, requestedResourceID, err)
+	}
+	requestedResourceID = requestedARMResourceID.String()
+
+	if n.ResourceID != nil {
+		idARMResourceID, err := arm.ParseResourceID(*n.ResourceID)
+		if err != nil {
+			return nil, fmt.Errorf("%w for identity resource ID %s: %w", errParseResourceID, *n.ResourceID, err)
+		}
+		if requestedResourceID == idARMResourceID.String() {
+			return getClientCertificateCredential(n.NestedCredentialsObject, n.cloud)
 		}
 	}
 
