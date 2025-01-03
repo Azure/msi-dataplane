@@ -37,10 +37,6 @@ type NestedCredentialsObject struct {
 	cloud string
 }
 
-type UserAssignedIdentities interface {
-	GetCredential(requestedResourceID string) (*azidentity.ClientCertificateCredential, error)
-}
-
 // Constructor for Credentials Object UserAssignedIdentities
 func NewCredentialsObjectUAIdentities(c CredentialsObject, cloud string) (*CredentialsObject, error) {
 	if !c.IsUserAssigned() {
