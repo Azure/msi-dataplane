@@ -36,7 +36,7 @@ func NewStub(creds []*CredentialsObject) *stub {
 		if identity != nil && identity.IsUserAssigned() {
 			// User-assigned managed identities can have multiple resource IDs
 			resourceIDs := make([]string, 0)
-			for _, uaMSI := range identity.ExplicitIdentities {
+			for _, uaMSI := range identity.Values.ExplicitIdentities {
 				if uaMSI != nil && uaMSI.ResourceID != nil {
 					resourceIDs = append(resourceIDs, *uaMSI.ResourceID)
 				}
@@ -101,7 +101,7 @@ func (s stub) post(req *http.Request) (*http.Response, error) {
 	}
 
 	// Marshal the credentials object into the body
-	credBytes, err := creds.MarshalJSON()
+	credBytes, err := creds.Values.MarshalJSON()
 	if err != nil {
 		return &http.Response{StatusCode: http.StatusInternalServerError}, err
 	}

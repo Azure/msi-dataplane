@@ -69,11 +69,11 @@ func TestGetCredentialsObject(t *testing.T) {
 
 	bogusValue := test.Bogus
 	testCredentialsObject := dataplane.CredentialsObject{
-		CredentialsObject: swagger.CredentialsObject{
+		Values: swagger.CredentialsObject{
 			ClientSecret: &bogusValue,
 		},
 	}
-	testCredentialsObjectBuffer, err := testCredentialsObject.MarshalJSON()
+	testCredentialsObjectBuffer, err := testCredentialsObject.Values.MarshalJSON()
 	if err != nil {
 		t.Fatalf("Failed to encode test credentials object: %s", err)
 	}
@@ -159,11 +159,11 @@ func TestDeletedGetCredentialsObject(t *testing.T) {
 
 	bogusValue := test.Bogus
 	testCredentialsObject := dataplane.CredentialsObject{
-		CredentialsObject: swagger.CredentialsObject{
+		Values: swagger.CredentialsObject{
 			ClientSecret: &bogusValue,
 		},
 	}
-	testCredentialsObjectBuffer, err := testCredentialsObject.MarshalJSON()
+	testCredentialsObjectBuffer, err := testCredentialsObject.Values.MarshalJSON()
 	if err != nil {
 		t.Fatalf("Failed to encode test credentials object: %s", err)
 	}

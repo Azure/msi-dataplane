@@ -26,34 +26,21 @@ var (
 // CredentialsObject is a wrapper around the swagger.CredentialsObject to add additional functionality
 // swagger.Credentials object can represent either system or user-assigned managed identity
 type CredentialsObject struct {
-	swagger.CredentialsObject
-	cloud string
+	Values swagger.CredentialsObject
+	cloud  string
 }
 
 // NestedCredentialsObject is a wrapper around the swagger.NestedCredentialsObject to add additional functionality
 // swagger.NestedCredentials object can represent only user-assigned managed identity
 type NestedCredentialsObject struct {
-	swagger.NestedCredentialsObject
-	cloud string
-}
-
-// Constructor for Credentials Object UserAssignedIdentities
-func NewCredentialsObjectUAIdentities(c CredentialsObject, cloud string) (*CredentialsObject, error) {
-	if !c.IsUserAssigned() {
-		return nil, errNoUserAssignedMSIs
-	}
-	return &CredentialsObject{CredentialsObject: c.CredentialsObject, cloud: cloud}, nil
-}
-
-// Constructor for Nested Credentials Object UserAssignedIdentities
-func NewNestedCredentialsObjectUAIdentities(c swagger.NestedCredentialsObject, cloud string) (*NestedCredentialsObject, error) {
-	return &NestedCredentialsObject{NestedCredentialsObject: c, cloud: cloud}, nil
+	Values swagger.NestedCredentialsObject
+	cloud  string
 }
 
 // This method may be used by clients to check if they can use the object as a user-assigned managed identity
 // Ex: get credentials object from key vault store and check if it is a user-assigned managed identity to call client for object refresh.
 func (c CredentialsObject) IsUserAssigned() bool {
-	return len(c.ExplicitIdentities) > 0
+	return len(c.Values.ExplicitIdentities) > 0
 }
 
 // Get an AzIdentity credential for the given credential object user-assigned identity resource ID
@@ -65,7 +52,7 @@ func (c CredentialsObject) GetCredential(requestedResourceID string) (*azidentit
 	}
 	requestedResourceID = requestedARMResourceID.String()
 
-	for _, id := range c.ExplicitIdentities {
+	for _, id := range c.Values.ExplicitIdentities {
 		if id != nil && id.ResourceID != nil {
 			idARMResourceID, err := arm.ParseResourceID(*id.ResourceID)
 			if err != nil {
@@ -89,13 +76,13 @@ func (n NestedCredentialsObject) GetCredential(requestedResourceID string) (*azi
 	}
 	requestedResourceID = requestedARMResourceID.String()
 
-	if n.ResourceID != nil {
-		idARMResourceID, err := arm.ParseResourceID(*n.ResourceID)
+	if n.Values.ResourceID != nil {
+		idARMResourceID, err := arm.ParseResourceID(*n.Values.ResourceID)
 		if err != nil {
-			return nil, fmt.Errorf("%w for identity resource ID %s: %w", errParseResourceID, *n.ResourceID, err)
+			return nil, fmt.Errorf("%w for identity resource ID %s: %w", errParseResourceID, *n.Values.ResourceID, err)
 		}
 		if requestedResourceID == idARMResourceID.String() {
-			return getClientCertificateCredential(n.NestedCredentialsObject, n.cloud)
+			return getClientCertificateCredential(n.Values, n.cloud)
 		}
 	}
 

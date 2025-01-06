@@ -69,7 +69,7 @@ func (s *MsiKeyVaultStore) GetCredentialsObject(ctx context.Context, secretName 
 		return nil, errNilSecretValue
 	}
 	var credentialsObject dataplane.CredentialsObject
-	if err := credentialsObject.UnmarshalJSON([]byte(*secret.Value)); err != nil {
+	if err := credentialsObject.Values.UnmarshalJSON([]byte(*secret.Value)); err != nil {
 		return nil, err
 	}
 
@@ -107,8 +107,8 @@ func (s *MsiKeyVaultStore) GetDeletedCredentialsObject(ctx context.Context, secr
 		return nil, errNilSecretValue
 	}
 
-	var credentialsObject dataplane.CredentialsObject
-	if err := credentialsObject.UnmarshalJSON([]byte(*response.Value)); err != nil {
+	var creds dataplane.CredentialsObject
+	if err := creds.Values.UnmarshalJSON([]byte(*response.Value)); err != nil {
 		return nil, err
 	}
 
@@ -129,7 +129,7 @@ func (s *MsiKeyVaultStore) GetDeletedCredentialsObject(ctx context.Context, secr
 		}
 	}
 
-	return &DeletedSecretResponse{CredentialsObject: credentialsObject, Properties: deletedSecretProperties}, nil
+	return &DeletedSecretResponse{CredentialsObject: creds, Properties: deletedSecretProperties}, nil
 }
 
 // Get a pager for listing credentials objects from the key vault.
@@ -155,7 +155,7 @@ func (s *MsiKeyVaultStore) PurgeDeletedCredentialsObject(ctx context.Context, se
 // Set a credentials object in the key vault using the specified secret name.
 // If the secret already exists, key vault will create a new version of the secret.
 func (s *MsiKeyVaultStore) SetCredentialsObject(ctx context.Context, properties SecretProperties, credentialsObject dataplane.CredentialsObject) error {
-	credentialsObjectBuffer, err := credentialsObject.MarshalJSON()
+	credentialsObjectBuffer, err := credentialsObject.Values.MarshalJSON()
 	if err != nil {
 		return err
 	}

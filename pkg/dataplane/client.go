@@ -107,8 +107,11 @@ func (c *ManagedIdentityClient) getUserAssignedIdentities(ctx context.Context, r
 		}
 	}
 
-	credentialsObject := CredentialsObject{CredentialsObject: creds.CredentialsObject}
-	return NewCredentialsObjectUAIdentities(credentialsObject, c.cloud)
+	credentialsObject := CredentialsObject{Values: creds.CredentialsObject, cloud: c.cloud}
+	if !credentialsObject.IsUserAssigned() {
+		return nil, errNoUserAssignedMSIs
+	}
+	return &credentialsObject, nil
 }
 
 func (c *ManagedIdentityClient) GetCredentialsObjectUserAssignedIdentities(ctx context.Context, request UserAssignedMSIRequest) (*CredentialsObject, error) {
@@ -121,12 +124,12 @@ func (c *ManagedIdentityClient) GetNestedCredentialsObjectUserAssignedIdentities
 		return nil, err
 	}
 
-	if len(ua.CredentialsObject.ExplicitIdentities) == 0 ||
-		ua.CredentialsObject.ExplicitIdentities[0] == nil {
+	if len(ua.Values.ExplicitIdentities) == 0 ||
+		ua.Values.ExplicitIdentities[0] == nil {
 		return nil, errGetNestedCreds
 	}
 
-	return NewNestedCredentialsObjectUAIdentities(*ua.CredentialsObject.ExplicitIdentities[0], c.cloud)
+	return &NestedCredentialsObject{Values: *ua.Values.ExplicitIdentities[0], cloud: c.cloud}, nil
 }
 
 func validateResourceIDs(fl validator.FieldLevel) bool {
