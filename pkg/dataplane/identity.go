@@ -67,23 +67,11 @@ func (c CredentialsObject) GetCredential(requestedResourceID string) (*azidentit
 	return nil, errResourceIDNotFound
 }
 
-// Get an AzIdentity credential for the given nested credential object user-assigned identity resource ID
+// Get an AzIdentity credential for the given nested credential object
 // Clients can use the credential to get a token for the user-assigned identity
-func (n NestedCredentialsObject) GetCredential(requestedResourceID string) (*azidentity.ClientCertificateCredential, error) {
-	requestedARMResourceID, err := arm.ParseResourceID(requestedResourceID)
-	if err != nil {
-		return nil, fmt.Errorf("%w for requested resource ID %s: %w", errParseResourceID, requestedResourceID, err)
-	}
-	requestedResourceID = requestedARMResourceID.String()
-
+func (n NestedCredentialsObject) GetCredential() (*azidentity.ClientCertificateCredential, error) {
 	if n.Values.ResourceID != nil {
-		idARMResourceID, err := arm.ParseResourceID(*n.Values.ResourceID)
-		if err != nil {
-			return nil, fmt.Errorf("%w for identity resource ID %s: %w", errParseResourceID, *n.Values.ResourceID, err)
-		}
-		if requestedResourceID == idARMResourceID.String() {
-			return getClientCertificateCredential(n.Values, n.cloud)
-		}
+		return getClientCertificateCredential(n.Values, n.cloud)
 	}
 
 	return nil, errResourceIDNotFound

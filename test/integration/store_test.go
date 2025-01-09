@@ -85,7 +85,7 @@ func TestStore(t *testing.T) {
 
 	if !reflect.DeepEqual(testCredentialsObject, resp.CredentialsObject) {
 		t.Errorf(`Credential objects do not match. 
-		          Returned has client ID %s, expected %s`, *&resp.CredentialsObject.Values.ClientID, *&testCredentialsObject.Values.ClientID)
+		          Returned has client ID %s, expected %s`, *resp.CredentialsObject.Values.ClientID, *testCredentialsObject.Values.ClientID)
 	}
 
 	// Delete the credentials object from the store
