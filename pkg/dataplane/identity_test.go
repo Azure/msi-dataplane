@@ -41,52 +41,11 @@ func TestIsUserAssigned(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			msi := CredentialsObject{
-				CredentialsObject: tc.credenialsObject,
+				Values: tc.credenialsObject,
 			}
 
 			if result := msi.IsUserAssigned(); result != tc.expected {
 				t.Errorf("expected: `%t` but got: `%t`", tc.expected, result)
-			}
-		})
-	}
-}
-
-func TestNewUserAssignedIdentities(t *testing.T) {
-	t.Parallel()
-
-	testCases := []struct {
-		name        string
-		c           CredentialsObject
-		expectedErr error
-	}{
-		{
-			name: "No user-assigned managed identities",
-			c: CredentialsObject{
-				CredentialsObject: swagger.CredentialsObject{
-					ExplicitIdentities: []*swagger.NestedCredentialsObject{},
-				},
-			},
-			expectedErr: errNoUserAssignedMSIs,
-		},
-		{
-			name: "User-assigned managed identities present",
-			c: CredentialsObject{
-				CredentialsObject: swagger.CredentialsObject{
-					ExplicitIdentities: []*swagger.NestedCredentialsObject{
-						test.GetTestMSI(test.Bogus),
-					},
-				},
-			},
-			expectedErr: nil,
-		},
-	}
-
-	for _, tc := range testCases {
-		tc := tc
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-			if _, err := NewUserAssignedIdentities(tc.c, test.Bogus); !errors.Is(err, tc.expectedErr) {
-				t.Errorf("expected error: `%s` but got: `%s`", tc.expectedErr, err)
 			}
 		})
 	}
@@ -101,19 +60,17 @@ func TestGetCredential(t *testing.T) {
 	validIdentity.AuthenticationEndpoint = test.StringPtr(test.ValidAuthenticationEndpoint)
 
 	testCases := []struct {
-		name         string
-		uaIdentities UserAssignedIdentities
-		resourceID   string
-		expectedErr  error
+		name              string
+		credentialsObject CredentialsObject
+		resourceID        string
+		expectedErr       error
 	}{
 		{
 			name: "empty resourceID",
-			uaIdentities: UserAssignedIdentities{
-				CredentialsObject: CredentialsObject{
-					CredentialsObject: swagger.CredentialsObject{
-						ExplicitIdentities: []*swagger.NestedCredentialsObject{
-							test.GetTestMSI(test.ValidResourceID),
-						},
+			credentialsObject: CredentialsObject{
+				Values: swagger.CredentialsObject{
+					ExplicitIdentities: []*swagger.NestedCredentialsObject{
+						test.GetTestMSI(test.ValidResourceID),
 					},
 				},
 			},
@@ -121,19 +78,17 @@ func TestGetCredential(t *testing.T) {
 			expectedErr: errParseResourceID,
 		},
 		{
-			name:         "no identities present",
-			uaIdentities: UserAssignedIdentities{},
-			resourceID:   test.ValidResourceID,
-			expectedErr:  errResourceIDNotFound,
+			name:              "no identities present",
+			credentialsObject: CredentialsObject{},
+			resourceID:        test.ValidResourceID,
+			expectedErr:       errResourceIDNotFound,
 		},
 		{
 			name: "invalid requested resourceID",
-			uaIdentities: UserAssignedIdentities{
-				CredentialsObject: CredentialsObject{
-					CredentialsObject: swagger.CredentialsObject{
-						ExplicitIdentities: []*swagger.NestedCredentialsObject{
-							test.GetTestMSI(test.ValidResourceID),
-						},
+			credentialsObject: CredentialsObject{
+				Values: swagger.CredentialsObject{
+					ExplicitIdentities: []*swagger.NestedCredentialsObject{
+						test.GetTestMSI(test.ValidResourceID),
 					},
 				},
 			},
@@ -142,12 +97,10 @@ func TestGetCredential(t *testing.T) {
 		},
 		{
 			name: "invalid identity resourceID",
-			uaIdentities: UserAssignedIdentities{
-				CredentialsObject: CredentialsObject{
-					CredentialsObject: swagger.CredentialsObject{
-						ExplicitIdentities: []*swagger.NestedCredentialsObject{
-							test.GetTestMSI(test.Bogus),
-						},
+			credentialsObject: CredentialsObject{
+				Values: swagger.CredentialsObject{
+					ExplicitIdentities: []*swagger.NestedCredentialsObject{
+						test.GetTestMSI(test.Bogus),
 					},
 				},
 			},
@@ -156,12 +109,10 @@ func TestGetCredential(t *testing.T) {
 		},
 		{
 			name: "invalid client secret",
-			uaIdentities: UserAssignedIdentities{
-				CredentialsObject: CredentialsObject{
-					CredentialsObject: swagger.CredentialsObject{
-						ExplicitIdentities: []*swagger.NestedCredentialsObject{
-							test.GetTestMSI(test.ValidResourceID),
-						},
+			credentialsObject: CredentialsObject{
+				Values: swagger.CredentialsObject{
+					ExplicitIdentities: []*swagger.NestedCredentialsObject{
+						test.GetTestMSI(test.ValidResourceID),
 					},
 				},
 			},
@@ -170,12 +121,10 @@ func TestGetCredential(t *testing.T) {
 		},
 		{
 			name: "success",
-			uaIdentities: UserAssignedIdentities{
-				CredentialsObject: CredentialsObject{
-					CredentialsObject: swagger.CredentialsObject{
-						ExplicitIdentities: []*swagger.NestedCredentialsObject{
-							validIdentity,
-						},
+			credentialsObject: CredentialsObject{
+				Values: swagger.CredentialsObject{
+					ExplicitIdentities: []*swagger.NestedCredentialsObject{
+						validIdentity,
 					},
 				},
 			},
@@ -188,7 +137,7 @@ func TestGetCredential(t *testing.T) {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			if _, err := tc.uaIdentities.GetCredential(tc.resourceID); !errors.Is(err, tc.expectedErr) {
+			if _, err := tc.credentialsObject.GetCredential(tc.resourceID); !errors.Is(err, tc.expectedErr) {
 				t.Errorf("expected error: `%s` but got: `%s`", tc.expectedErr, err)
 			}
 		})
