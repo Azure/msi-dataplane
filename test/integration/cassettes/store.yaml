@@ -9,7 +9,7 @@ interactions:
         content_length: 0
         transfer_encoding: []
         trailer: {}
-        host: vcr-kv-ngkzwz.vault.azure.net
+        host: vcr-kv-kfsepq.vault.azure.net
         remote_addr: ""
         request_uri: ""
         body: ""
@@ -22,8 +22,8 @@ interactions:
             Content-Type:
                 - application/json
             User-Agent:
-                - azsdk-go-azsecrets/v1.1.0 (go1.21.13; linux)
-        url: https://vcr-kv-ngkzwz.vault.azure.net/secrets/bogus?api-version=7.5
+                - azsdk-go-azsecrets/v1.1.0 (go1.22.5; linux)
+        url: https://vcr-kv-kfsepq.vault.azure.net/secrets/bogus?api-version=7.5
         method: PUT
       response:
         proto: HTTP/1.1
@@ -42,7 +42,7 @@ interactions:
             Content-Type:
                 - application/json; charset=utf-8
             Date:
-                - Thu, 02 Jan 2025 22:32:18 GMT
+                - Fri, 10 Jan 2025 16:52:50 GMT
             Expires:
                 - "-1"
             Pragma:
@@ -60,10 +60,10 @@ interactions:
             X-Ms-Keyvault-Service-Version:
                 - 1.9.1988.1
             X-Ms-Request-Id:
-                - fc246ee3-bf7e-4f7b-ad6d-4e64630ed400
+                - 82c2e3e6-e221-4a2e-b69b-a7c955b09761
         status: 401 Unauthorized
         code: 401
-        duration: 245.151442ms
+        duration: 303.228184ms
     - id: 1
       request:
         proto: HTTP/1.1
@@ -72,10 +72,10 @@ interactions:
         content_length: 101
         transfer_encoding: []
         trailer: {}
-        host: vcr-kv-ngkzwz.vault.azure.net
+        host: vcr-kv-kfsepq.vault.azure.net
         remote_addr: ""
         request_uri: ""
-        body: '{"attributes":{"enabled":true,"exp":1735860737,"nbf":1735857137},"value":"{\"client_id\":\"bogus\"}"}'
+        body: '{"attributes":{"enabled":true,"exp":1736531570,"nbf":1736527970},"value":"{\"client_id\":\"bogus\"}"}'
         form: {}
         headers:
             Accept:
@@ -85,8 +85,8 @@ interactions:
             Content-Type:
                 - application/json
             User-Agent:
-                - azsdk-go-azsecrets/v1.1.0 (go1.21.13; linux)
-        url: https://vcr-kv-ngkzwz.vault.azure.net/secrets/bogus?api-version=7.5
+                - azsdk-go-azsecrets/v1.1.0 (go1.22.5; linux)
+        url: https://vcr-kv-kfsepq.vault.azure.net/secrets/bogus?api-version=7.5
         method: PUT
       response:
         proto: HTTP/1.1
@@ -96,7 +96,7 @@ interactions:
         trailer: {}
         content_length: 296
         uncompressed: false
-        body: '{"value":"{\"client_id\":\"bogus\"}","id":"https://vcr-kv-ngkzwz.vault.azure.net/secrets/bogus/bfd57f900d4d4c208a72f4019e19b563","attributes":{"enabled":true,"nbf":1735857137,"exp":1735860737,"created":1735857140,"updated":1735857140,"recoveryLevel":"Recoverable+Purgeable","recoverableDays":90}}'
+        body: '{"value":"{\"client_id\":\"bogus\"}","id":"https://vcr-kv-kfsepq.vault.azure.net/secrets/bogus/c49ee97c87e34e9ab507ed3c00f2ac6d","attributes":{"enabled":true,"nbf":1736527970,"exp":1736531570,"created":1736527971,"updated":1736527971,"recoveryLevel":"Recoverable+Purgeable","recoverableDays":90}}'
         headers:
             Cache-Control:
                 - no-cache
@@ -105,7 +105,7 @@ interactions:
             Content-Type:
                 - application/json; charset=utf-8
             Date:
-                - Thu, 02 Jan 2025 22:32:19 GMT
+                - Fri, 10 Jan 2025 16:52:51 GMT
             Expires:
                 - "-1"
             Pragma:
@@ -117,16 +117,16 @@ interactions:
             X-Ms-Keyvault-Network-Info:
                 - conn_type=Ipv4;addr=75.28.17.175;act_addr_fam=InterNetwork;
             X-Ms-Keyvault-Rbac-Assignment-Id:
-                - e464696d2a194c82974fe4b975029fed
+                - 9abf893b830b470292936b89cad28967
             X-Ms-Keyvault-Region:
                 - eastus
             X-Ms-Keyvault-Service-Version:
                 - 1.9.1988.1
             X-Ms-Request-Id:
-                - e1970f6c-5d44-4416-952c-a1eeddf429bb
+                - ca92c917-0ecf-4937-b560-f5b9b0435c23
         status: 200 OK
         code: 200
-        duration: 168.129551ms
+        duration: 191.433438ms
     - id: 2
       request:
         proto: HTTP/1.1
@@ -135,7 +135,7 @@ interactions:
         content_length: 0
         transfer_encoding: []
         trailer: {}
-        host: vcr-kv-ngkzwz.vault.azure.net
+        host: vcr-kv-kfsepq.vault.azure.net
         remote_addr: ""
         request_uri: ""
         body: ""
@@ -144,8 +144,8 @@ interactions:
             Accept:
                 - application/json
             User-Agent:
-                - azsdk-go-azsecrets/v1.1.0 (go1.21.13; linux)
-        url: https://vcr-kv-ngkzwz.vault.azure.net/secrets/bogus/?api-version=7.5
+                - azsdk-go-azsecrets/v1.1.0 (go1.22.5; linux)
+        url: https://vcr-kv-kfsepq.vault.azure.net/secrets/bogus/?api-version=7.5
         method: GET
       response:
         proto: HTTP/1.1
@@ -155,7 +155,7 @@ interactions:
         trailer: {}
         content_length: 296
         uncompressed: false
-        body: '{"value":"{\"client_id\":\"bogus\"}","id":"https://vcr-kv-ngkzwz.vault.azure.net/secrets/bogus/bfd57f900d4d4c208a72f4019e19b563","attributes":{"enabled":true,"nbf":1735857137,"exp":1735860737,"created":1735857140,"updated":1735857140,"recoveryLevel":"Recoverable+Purgeable","recoverableDays":90}}'
+        body: '{"value":"{\"client_id\":\"bogus\"}","id":"https://vcr-kv-kfsepq.vault.azure.net/secrets/bogus/c49ee97c87e34e9ab507ed3c00f2ac6d","attributes":{"enabled":true,"nbf":1736527970,"exp":1736531570,"created":1736527971,"updated":1736527971,"recoveryLevel":"Recoverable+Purgeable","recoverableDays":90}}'
         headers:
             Cache-Control:
                 - no-cache
@@ -164,7 +164,7 @@ interactions:
             Content-Type:
                 - application/json; charset=utf-8
             Date:
-                - Thu, 02 Jan 2025 22:32:19 GMT
+                - Fri, 10 Jan 2025 16:52:51 GMT
             Expires:
                 - "-1"
             Pragma:
@@ -176,16 +176,16 @@ interactions:
             X-Ms-Keyvault-Network-Info:
                 - conn_type=Ipv4;addr=75.28.17.175;act_addr_fam=InterNetwork;
             X-Ms-Keyvault-Rbac-Assignment-Id:
-                - e464696d2a194c82974fe4b975029fed
+                - 9abf893b830b470292936b89cad28967
             X-Ms-Keyvault-Region:
                 - eastus
             X-Ms-Keyvault-Service-Version:
                 - 1.9.1988.1
             X-Ms-Request-Id:
-                - 9925467f-bf71-429f-b5ab-f263e312bd5c
+                - 1beaccc8-96c8-4f93-bf26-9cdc3207fd02
         status: 200 OK
         code: 200
-        duration: 79.493134ms
+        duration: 99.776021ms
     - id: 3
       request:
         proto: HTTP/1.1
@@ -194,7 +194,7 @@ interactions:
         content_length: 0
         transfer_encoding: []
         trailer: {}
-        host: vcr-kv-ngkzwz.vault.azure.net
+        host: vcr-kv-kfsepq.vault.azure.net
         remote_addr: ""
         request_uri: ""
         body: ""
@@ -203,8 +203,8 @@ interactions:
             Accept:
                 - application/json
             User-Agent:
-                - azsdk-go-azsecrets/v1.1.0 (go1.21.13; linux)
-        url: https://vcr-kv-ngkzwz.vault.azure.net/secrets/bogus?api-version=7.5
+                - azsdk-go-azsecrets/v1.1.0 (go1.22.5; linux)
+        url: https://vcr-kv-kfsepq.vault.azure.net/secrets/bogus?api-version=7.5
         method: DELETE
       response:
         proto: HTTP/1.1
@@ -214,7 +214,7 @@ interactions:
         trailer: {}
         content_length: 391
         uncompressed: false
-        body: '{"recoveryId":"https://vcr-kv-ngkzwz.vault.azure.net/deletedsecrets/bogus","deletedDate":1735857140,"scheduledPurgeDate":1743633140,"id":"https://vcr-kv-ngkzwz.vault.azure.net/secrets/bogus/bfd57f900d4d4c208a72f4019e19b563","attributes":{"enabled":true,"nbf":1735857137,"exp":1735860737,"created":1735857140,"updated":1735857140,"recoveryLevel":"Recoverable+Purgeable","recoverableDays":90}}'
+        body: '{"recoveryId":"https://vcr-kv-kfsepq.vault.azure.net/deletedsecrets/bogus","deletedDate":1736527971,"scheduledPurgeDate":1744303971,"id":"https://vcr-kv-kfsepq.vault.azure.net/secrets/bogus/c49ee97c87e34e9ab507ed3c00f2ac6d","attributes":{"enabled":true,"nbf":1736527970,"exp":1736531570,"created":1736527971,"updated":1736527971,"recoveryLevel":"Recoverable+Purgeable","recoverableDays":90}}'
         headers:
             Cache-Control:
                 - no-cache
@@ -223,7 +223,7 @@ interactions:
             Content-Type:
                 - application/json; charset=utf-8
             Date:
-                - Thu, 02 Jan 2025 22:32:19 GMT
+                - Fri, 10 Jan 2025 16:52:51 GMT
             Expires:
                 - "-1"
             Pragma:
@@ -235,13 +235,13 @@ interactions:
             X-Ms-Keyvault-Network-Info:
                 - conn_type=Ipv4;addr=75.28.17.175;act_addr_fam=InterNetwork;
             X-Ms-Keyvault-Rbac-Assignment-Id:
-                - e464696d2a194c82974fe4b975029fed
+                - 9abf893b830b470292936b89cad28967
             X-Ms-Keyvault-Region:
                 - eastus
             X-Ms-Keyvault-Service-Version:
                 - 1.9.1988.1
             X-Ms-Request-Id:
-                - fe9a6eca-e728-4467-b169-a766d7143d45
+                - 90e98b00-9d14-4fe0-b27a-9f19d4c30927
         status: 200 OK
         code: 200
-        duration: 108.485722ms
+        duration: 126.970603ms

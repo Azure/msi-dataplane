@@ -85,7 +85,7 @@ func (s *MsiKeyVaultStore) GetCredentialsObject(ctx context.Context, secretName 
 	}
 
 	var credentialsObject dataplane.CredentialsObject
-	if err := credentialsObject.UnmarshalJSON([]byte(secretObject.value)); err != nil {
+	if err := credentialsObject.Values.UnmarshalJSON([]byte(secretObject.value)); err != nil {
 		return nil, err
 	}
 
@@ -151,7 +151,7 @@ func (s *MsiKeyVaultStore) GetDeletedCredentialsObject(ctx context.Context, secr
 	}
 
 	var credentialsObject dataplane.CredentialsObject
-	if err := credentialsObject.UnmarshalJSON([]byte(deletedSecretObject.value)); err != nil {
+	if err := credentialsObject.Values.UnmarshalJSON([]byte(deletedSecretObject.value)); err != nil {
 		return nil, err
 	}
 
@@ -226,7 +226,7 @@ func (s *MsiKeyVaultStore) PurgeDeletedSecretObject(ctx context.Context, secretN
 
 // Set a credentials object in the key vault using the specified secret name.
 func (s *MsiKeyVaultStore) SetCredentialsObject(ctx context.Context, properties SecretProperties, credentialsObject dataplane.CredentialsObject) error {
-	credentialsObjectBuffer, err := credentialsObject.MarshalJSON()
+	credentialsObjectBuffer, err := credentialsObject.Values.MarshalJSON()
 	if err != nil {
 		return err
 	}
