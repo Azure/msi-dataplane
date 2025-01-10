@@ -3,9 +3,10 @@ package integration
 import (
 	"context"
 	"os"
+	"os/signal"
 	"path"
-	"reflect"
 	"testing"
+	"time"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
@@ -14,6 +15,7 @@ import (
 	"github.com/Azure/msi-dataplane/pkg/dataplane"
 	"github.com/Azure/msi-dataplane/pkg/dataplane/swagger"
 	"github.com/Azure/msi-dataplane/pkg/store"
+	"github.com/google/go-cmp/cmp"
 	"gopkg.in/dnaeon/go-vcr.v3/cassette"
 	"gopkg.in/dnaeon/go-vcr.v3/recorder"
 )
@@ -30,6 +32,9 @@ const (
 
 func TestStore(t *testing.T) {
 	t.Parallel()
+
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer stop()
 
 	recordMode := getRecordMode()
 
@@ -67,30 +72,127 @@ func TestStore(t *testing.T) {
 			ClientID: &bogus,
 		},
 	}
-
-	props := store.SecretProperties{
-		Name: test.Bogus,
+	expirationDate, err := time.Parse(time.RFC3339, time.Now().Add(time.Hour).Format(time.RFC3339))
+	if err != nil {
+		t.Fatalf("Failed to parse expiry date: %s", err)
 	}
-	if err := msiStore.SetCredentialsObject(context.Background(), props, testCredentialsObject); err != nil {
+	notBeforeDate, err := time.Parse(time.RFC3339, time.Now().Format(time.RFC3339))
+	if err != nil {
+		t.Fatalf("Failed to parse notBefore date: %s", err)
+	}
+	props := store.SecretProperties{
+		Name:      bogus,
+		Enabled:   true,
+		Expires:   expirationDate,
+		NotBefore: notBeforeDate,
+	}
+
+	testCredentialsObjectSecretResponse := store.CredentialsObjectSecretResponse{
+		Properties:        props,
+		CredentialsObject: testCredentialsObject,
+	}
+
+	if err := msiStore.SetCredentialsObject(ctx, props, testCredentialsObject); err != nil {
 		// Fatal here since rest of test cannot proceed
 		t.Fatalf("Failed to set credentials object: %s", err)
 	}
 
 	// Get the credentials object from the store
-	resp, err := msiStore.GetCredentialsObject(context.Background(), bogus)
+	resp, err := msiStore.GetCredentialsObject(ctx, bogus)
 	if err != nil {
 		// Fatal here since rest of test cannot proceed
 		t.Fatalf("Failed to get credentials object: %s", err)
 	}
 
-	if !reflect.DeepEqual(testCredentialsObject, resp.CredentialsObject) {
-		t.Errorf(`Credential objects do not match. 
-		          Returned has client ID %s, expected %s`, *resp.CredentialsObject.Values.ClientID, *testCredentialsObject.Values.ClientID)
+	if diff := cmp.Diff(resp, &testCredentialsObjectSecretResponse); diff != "" {
+		t.Errorf("Expected credentials object %+v\n but got: %+v", &testCredentialsObjectSecretResponse, resp)
 	}
 
 	// Delete the credentials object from the store
-	if err := msiStore.DeleteCredentialsObject(context.Background(), bogus); err != nil {
+	if err := msiStore.DeleteSecret(ctx, bogus); err != nil {
 		t.Errorf("Failed to delete credentials object: %s", err)
+	}
+}
+
+func TestNestedCredentialsObjectStore(t *testing.T) {
+	t.Parallel()
+
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer stop()
+
+	recordMode := getRecordMode()
+
+	// Get the credential based on record mode
+	var cred azcore.TokenCredential
+	var err error
+	switch recordMode {
+	case recorder.ModeReplayOnly:
+		// Use a fake credential for replay mode
+		cred = &test.FakeCredential{}
+	case recorder.ModeRecordOnly:
+		// Use the default Azure credential for record mode
+		cred, err = azidentity.NewDefaultAzureCredential(nil)
+		if err != nil {
+			t.Fatalf("Failed to create credential: %s", err)
+		}
+	}
+
+	// Create a recorder for the secrets client
+	r, err := getRecorder(recordMode, getCassettePath())
+	if err != nil {
+		t.Fatalf("Failed to create recorder: %s", err)
+	}
+	defer r.Stop()
+
+	msiStore, err := createMsiStore(r, cred)
+	if err != nil {
+		t.Fatalf("Failed to create MSI store: %s", err)
+	}
+
+	// Add a test nested credentials object to the store
+	bogus := "NestedBogus"
+	testNestedCredentialsObject := swagger.NestedCredentialsObject{
+		ClientSecret: &bogus,
+	}
+	expirationDate, err := time.Parse(time.RFC3339, time.Now().Add(time.Hour).Format(time.RFC3339))
+	if err != nil {
+		t.Fatalf("Failed to parse expiry date: %s", err)
+	}
+	notBeforeDate, err := time.Parse(time.RFC3339, time.Now().Format(time.RFC3339))
+	if err != nil {
+		t.Fatalf("Failed to parse notBefore date: %s", err)
+	}
+	props := store.SecretProperties{
+		Name:      bogus,
+		Enabled:   true,
+		Expires:   expirationDate,
+		NotBefore: notBeforeDate,
+	}
+
+	testNestedCredentialsObjectSecretResponse := store.NestedCredentialsObjectSecretResponse{
+		Properties:              props,
+		NestedCredentialsObject: testNestedCredentialsObject,
+	}
+
+	if err := msiStore.SetNestedCredentialsObject(ctx, props, testNestedCredentialsObject); err != nil {
+		// Fatal here since rest of test cannot proceed
+		t.Fatalf("Failed to set nested credentials object: %s", err)
+	}
+
+	// Get the credentials object from the store
+	resp, err := msiStore.GetNestedCredentialsObject(ctx, bogus)
+	if err != nil {
+		// Fatal here since rest of test cannot proceed
+		t.Fatalf("Failed to get nested credentials object: %s", err)
+	}
+
+	if diff := cmp.Diff(resp, &testNestedCredentialsObjectSecretResponse); diff != "" {
+		t.Errorf("Expected nested credentials object %+v\n but got: %+v", &testNestedCredentialsObjectSecretResponse, resp)
+	}
+
+	// Delete the credentials object from the store
+	if err := msiStore.DeleteSecret(ctx, bogus); err != nil {
+		t.Errorf("Failed to nested delete credentials object: %s", err)
 	}
 }
 
