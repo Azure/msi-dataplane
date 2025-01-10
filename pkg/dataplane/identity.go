@@ -27,14 +27,14 @@ var (
 // swagger.Credentials object can represent either system or user-assigned managed identity
 type CredentialsObject struct {
 	Values swagger.CredentialsObject
-	cloud  string
+	Cloud  string
 }
 
 // NestedCredentialsObject is a wrapper around the swagger.NestedCredentialsObject to add additional functionality
 // swagger.NestedCredentials object can represent only user-assigned managed identity
 type NestedCredentialsObject struct {
 	Values swagger.NestedCredentialsObject
-	cloud  string
+	Cloud  string
 }
 
 // This method may be used by clients to check if they can use the object as a user-assigned managed identity
@@ -59,7 +59,7 @@ func (c CredentialsObject) GetCredential(requestedResourceID string) (*azidentit
 				return nil, fmt.Errorf("%w for identity resource ID %s: %w", errParseResourceID, *id.ResourceID, err)
 			}
 			if requestedResourceID == idARMResourceID.String() {
-				return getClientCertificateCredential(*id, c.cloud)
+				return getClientCertificateCredential(*id, c.Cloud)
 			}
 		}
 	}
@@ -71,7 +71,7 @@ func (c CredentialsObject) GetCredential(requestedResourceID string) (*azidentit
 // Clients can use the credential to get a token for the user-assigned identity
 func (n NestedCredentialsObject) GetCredential() (*azidentity.ClientCertificateCredential, error) {
 	if n.Values.ResourceID != nil {
-		return getClientCertificateCredential(n.Values, n.cloud)
+		return getClientCertificateCredential(n.Values, n.Cloud)
 	}
 
 	return nil, errResourceIDNotFound
