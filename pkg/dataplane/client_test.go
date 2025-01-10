@@ -156,7 +156,7 @@ func TestGetUserAssignedIdentities(t *testing.T) {
 			tc.goMockCall(swaggerClient)
 
 			msiClient := &ManagedIdentityClient{swaggerClient: swaggerClient}
-			if _, err := msiClient.GetCredentialsObjectUserAssignedIdentities(context.Background(), tc.request); !errors.Is(err, tc.expectedErr) {
+			if _, err := msiClient.GetUserAssignedIdentities(context.Background(), tc.request); !errors.Is(err, tc.expectedErr) {
 				t.Errorf("expected error: `%s` but got: `%s`", tc.expectedErr, err)
 			}
 		})

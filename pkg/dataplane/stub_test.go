@@ -197,7 +197,7 @@ func TestStubWithClient(t *testing.T) {
 		IdentityURL: test.ValidIdentityURL,
 		TenantID:    test.ValidTenantID,
 	}
-	identities, err := client.GetCredentialsObjectUserAssignedIdentities(context.Background(), request)
+	identities, err := client.GetUserAssignedIdentities(context.Background(), request)
 	if err != nil {
 		t.Fatalf("unable to get user assigned msi: %s", err)
 	}
