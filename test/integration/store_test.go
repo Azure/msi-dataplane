@@ -68,7 +68,7 @@ func TestStore(t *testing.T) {
 	// Add a test credentials object to the store
 	bogus := test.Bogus
 	testCredentialsObject := dataplane.CredentialsObject{
-		Values: swagger.CredentialsObject{
+		CredentialsObject: swagger.CredentialsObject{
 			ClientID: &bogus,
 		},
 	}
@@ -104,14 +104,8 @@ func TestStore(t *testing.T) {
 		t.Fatalf("Failed to get credentials object: %s", err)
 	}
 
-<<<<<<< HEAD
-	if !reflect.DeepEqual(testCredentialsObject, resp.CredentialsObject) {
-		t.Errorf(`Credential objects do not match. 
-		          Returned has client ID %s, expected %s`, *resp.CredentialsObject.Values.ClientID, *testCredentialsObject.Values.ClientID)
-=======
 	if diff := cmp.Diff(resp, &testCredentialsObjectSecretResponse); diff != "" {
 		t.Errorf("Expected credentials object %+v\n but got: %+v", &testCredentialsObjectSecretResponse, resp)
->>>>>>> update integration test
 	}
 
 	// Delete the credentials object from the store

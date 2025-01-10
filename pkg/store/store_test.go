@@ -72,13 +72,10 @@ func TestGetCredentialsObject(t *testing.T) {
 	notBefore := time.Now()
 	bogusValue := test.Bogus
 	testCredentialsObject := dataplane.CredentialsObject{
-		Values: swagger.CredentialsObject{
+		CredentialsObject: swagger.CredentialsObject{
 			ClientSecret: &bogusValue,
 		},
 	}
-<<<<<<< HEAD
-	testCredentialsObjectBuffer, err := testCredentialsObject.Values.MarshalJSON()
-=======
 
 	testCredentialsObjectSecretResponse := CredentialsObjectSecretResponse{
 		Properties: SecretProperties{
@@ -91,7 +88,6 @@ func TestGetCredentialsObject(t *testing.T) {
 	}
 
 	testCredentialsObjectBuffer, err := testCredentialsObject.MarshalJSON()
->>>>>>> update UT to verify entire response
 	if err != nil {
 		t.Fatalf("Failed to encode test credentials object: %s", err)
 	}
@@ -257,13 +253,10 @@ func TestDeletedGetCredentialsObject(t *testing.T) {
 	recoveryLevel := "Purgable"
 	bogusValue := test.Bogus
 	testCredentialsObject := dataplane.CredentialsObject{
-		Values: swagger.CredentialsObject{
+		CredentialsObject: swagger.CredentialsObject{
 			ClientSecret: &bogusValue,
 		},
 	}
-<<<<<<< HEAD
-	testCredentialsObjectBuffer, err := testCredentialsObject.Values.MarshalJSON()
-=======
 
 	testDeletedCredentialsObjectSecretResponse := DeletedCredentialsObjectSecretResponse{
 		Properties: DeletedSecretProperties{
@@ -275,7 +268,6 @@ func TestDeletedGetCredentialsObject(t *testing.T) {
 	}
 
 	testCredentialsObjectBuffer, err := testCredentialsObject.MarshalJSON()
->>>>>>> update UT to verify entire response
 	if err != nil {
 		t.Fatalf("Failed to encode test credentials object: %s", err)
 	}
