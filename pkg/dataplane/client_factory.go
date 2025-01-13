@@ -30,10 +30,10 @@ type ClientFactory interface {
 // NewClientFactory creates a new MSI data plane client factory. The credentials and audience presented
 // are for the first-party credential. As the server to be contacted for each identity varies, a factory
 // is returned that can create clients on-demand.
-func NewClientFactory(cred azcore.TokenCredential, audience string) (ClientFactory, error) {
+func NewClientFactory(cred azcore.TokenCredential, audience string, opts *azcore.ClientOptions) (ClientFactory, error) {
 	azCoreClient, err := azcore.NewClient(moduleName, moduleVersion, runtime.PipelineOptions{
 		PerCall: []policy.Policy{NewAuthenticatorPolicy(cred, audience)},
-	}, &azcore.ClientOptions{})
+	}, opts)
 	if err != nil {
 		return nil, fmt.Errorf("error creating azcore client: %w", err)
 	}
