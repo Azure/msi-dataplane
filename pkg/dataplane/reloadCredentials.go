@@ -2,6 +2,7 @@ package dataplane
 
 import (
 	"context"
+	"encoding/json"
 	"log/slog"
 	"os"
 	"sync"
@@ -10,7 +11,6 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
-	"github.com/Azure/msi-dataplane/pkg/dataplane/swagger"
 	"github.com/fsnotify/fsnotify"
 	"github.com/go-logr/logr"
 )
@@ -143,14 +143,13 @@ func (r *reloadingCredential) load(cloud, credentialFile string) error {
 		return err
 	}
 
-	var nestedCreds swagger.NestedCredentialsObject
-	err = nestedCreds.UnmarshalJSON(byteValue)
-	if err != nil {
+	var credentials UserAssignedIdentityCredentials
+	if err := json.Unmarshal(byteValue, &credentials); err != nil {
 		return err
 	}
 
 	var newCertValue *azidentity.ClientCertificateCredential
-	newCertValue, err = getClientCertificateCredential(nestedCreds, cloud)
+	newCertValue, err = GetCredential(cloud, credentials)
 	if err != nil {
 		return err
 	}
@@ -158,7 +157,7 @@ func (r *reloadingCredential) load(cloud, credentialFile string) error {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 	if r.notBefore != "" {
-		err, ok := isLoadedCredentialNewer(*nestedCreds.NotBefore, r.notBefore)
+		err, ok := isLoadedCredentialNewer(*credentials.NotBefore, r.notBefore)
 		if err != nil {
 			return err
 		}
@@ -168,7 +167,7 @@ func (r *reloadingCredential) load(cloud, credentialFile string) error {
 	}
 
 	r.currentValue = newCertValue
-	r.notBefore = *nestedCreds.NotBefore
+	r.notBefore = *credentials.NotBefore
 
 	return nil
 }

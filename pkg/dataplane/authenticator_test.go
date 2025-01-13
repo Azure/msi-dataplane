@@ -1,17 +1,16 @@
-//go:build unit
-
 package dataplane
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"testing"
 
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	. "github.com/onsi/gomega"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/runtime"
-	"github.com/Azure/msi-dataplane/internal/test"
 )
 
 type fakeTransport struct {
@@ -105,7 +104,7 @@ func TestNewAuthenticatorPolicy(t *testing.T) {
 
 			pipeline := runtime.NewPipeline("", "", runtime.PipelineOptions{
 				PerCall: []policy.Policy{
-					NewAuthenticatorPolicy(&test.FakeCredential{}, "https://identity_url.com/"),
+					NewAuthenticatorPolicy(&FakeCredential{}, "https://identity_url.com/"),
 				},
 			}, &policy.ClientOptions{
 				Transport: tt.fakeTransport,
@@ -118,4 +117,12 @@ func TestNewAuthenticatorPolicy(t *testing.T) {
 			tt.validateRes(g, tt.fakeTransport, resp, err)
 		})
 	}
+}
+
+type FakeCredential struct{}
+
+func (f *FakeCredential) GetToken(ctx context.Context, opts policy.TokenRequestOptions) (azcore.AccessToken, error) {
+	return azcore.AccessToken{
+		Token: fmt.Sprintf("fake_token, tenantID %s, scopes %v", opts.TenantID, opts.Scopes),
+	}, nil
 }
