@@ -2,186 +2,96 @@ package dataplane
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"reflect"
+	"time"
 
-	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
-	"github.com/Azure/azure-sdk-for-go/sdk/azcore/arm"
-	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
-	"github.com/Azure/azure-sdk-for-go/sdk/azcore/runtime"
-	"github.com/Azure/msi-dataplane/pkg/dataplane/swagger"
-	"github.com/go-playground/validator/v10"
+	"github.com/Azure/msi-dataplane/pkg/dataplane/internal"
 )
 
-//go:generate /bin/bash -c "../../hack/mockgen.sh mock_swagger_client/zz_generated_mocks.go client.go"
+// Client wraps the generated code to smooth over the rough edges from generation, namely:
+// - the generated clients incorrectly expose the API version as a parameter, even though there's only one option
+// - the generated clients incorrectly expose all sorts of internal logic like the request body, etc, when we just want a clean client
+// Ideally we wouldn't need this wrapper, but it's much easier to implement this here than update the generator.
 
-const (
-	// TODO - Make module name configurable
-	moduleName = "managedidentitydataplane.APIClient"
-	// TODO - Tie the module version to update automatically with new releases
-	moduleVersion = "v0.0.1"
+// Client exposes the API for the MSI data plane.
+type Client interface {
+	// DeleteSystemAssignedIdentity deletes the system-assigned identity for a proxy resource.
+	DeleteSystemAssignedIdentity(ctx context.Context) error
+	
+	// GetSystemAssignedIdentityCredentials retrieves the credentials for the system-assigned identity associated with the proxy resource.
+	GetSystemAssignedIdentityCredentials(ctx context.Context) (*ManagedIdentityCredentials, error)
 
-	resourceIDsTag = "resource_ids"
-)
+	// GetUserAssignedIdentitiesCredentials retrieves the credentials for any user-assigned identities associated with the proxy resource.
+	GetUserAssignedIdentitiesCredentials(ctx context.Context, request UserAssignedIdentitiesRequest) (*ManagedIdentityCredentials, error)
 
-type ManagedIdentityClient struct {
-	swaggerClient msiClient
-	cloud         string
+	// MoveIdentity moves the identity from one resource group into another.
+	MoveIdentity(ctx context.Context, request MoveIdentityRequest) (*MoveIdentityResponse, error)
 }
 
-type UserAssignedMSIRequest struct {
-	IdentityURL string   `validate:"required,http_url"`
-	ResourceIDs []string `validate:"required,resource_ids"`
-	TenantID    string   `validate:"required,uuid"`
-}
+var apiVersion string
 
-type msiClient interface {
-	Getcreds(ctx context.Context, credRequest swagger.CredRequestDefinition, options *swagger.ManagedIdentityDataPlaneAPIClientGetcredsOptions) (swagger.ManagedIdentityDataPlaneAPIClientGetcredsResponse, error)
-}
-
-var _ msiClient = &swagger.ManagedIdentityDataPlaneAPIClient{}
-
-var (
-	// Errors returned by the Managed Identity Dataplane API client
-	errGetCreds       = errors.New("failed to get credentials")
-	errInvalidRequest = errors.New("invalid request")
-	errNilMSI         = errors.New("expected non-nil user-assigned managed identity")
-	errNumberOfMSIs   = errors.New("returned MSIs does not match number of requested MSIs")
-	errGetNestedCreds = errors.New("failed to get nested credentials object")
-)
-
-// TODO - Add parameter to specify module name in azcore.NewClient()
-// NewClient creates a new Managed Identity Dataplane API client
-func NewClient(cloud string, authenticator policy.Policy, clientOpts *policy.ClientOptions) (*ManagedIdentityClient, error) {
-	var perCallPolicies []policy.Policy
-	if authenticator != nil {
-		perCallPolicies = append(perCallPolicies, authenticator)
-	}
-	perCallPolicies = append(perCallPolicies, &injectIdentityURLPolicy{
-		msiHost: getMsiHost(cloud),
-	})
-	plOpts := runtime.PipelineOptions{
-		PerCall: perCallPolicies,
-	}
-
-	azCoreClient, err := azcore.NewClient(moduleName, moduleVersion, plOpts, clientOpts)
+func init() {
+	date, err := time.Parse(time.RFC3339, string(internal.DeleteidentityParamsApiVersionN20240101T000000Z))
 	if err != nil {
-		return nil, err
+		panic(fmt.Errorf("failed to parse generated API version as date: %s", err.Error()))
 	}
-	swaggerClient := swagger.NewSwaggerClient(azCoreClient)
-
-	return &ManagedIdentityClient{swaggerClient: swaggerClient, cloud: cloud}, nil
+	apiVersion = date.Format("2006-01-02")
 }
 
-func (c *ManagedIdentityClient) getUserAssignedIdentities(ctx context.Context, request UserAssignedMSIRequest) (*CredentialsObject, error) {
-	validate := validator.New(validator.WithRequiredStructEnabled())
-	validate.RegisterValidation(resourceIDsTag, validateResourceIDs)
-	if err := validate.Struct(request); err != nil {
-		return nil, fmt.Errorf("%w: %w", errInvalidRequest, err)
-	}
+type clientAdapter struct {
+	delegate *internal.ClientWithResponses
+}
 
-	identityIDs := make([]*string, len(request.ResourceIDs))
-	for idx, r := range request.ResourceIDs {
-		identityIDs[idx] = &r
-	}
+var _ Client = (*clientAdapter)(nil)
 
-	ctx = context.WithValue(ctx, identityURLKey, request.IdentityURL)
-	credRequestDef := swagger.CredRequestDefinition{
-		IdentityIDs: identityIDs,
-	}
-
-	creds, err := c.swaggerClient.Getcreds(ctx, credRequestDef, nil)
+func (c *clientAdapter) DeleteSystemAssignedIdentity(ctx context.Context) error {
+	resp, err := c.delegate.DeleteidentityWithResponse(ctx, &internal.DeleteidentityParams{ApiVersion: internal.DeleteidentityParamsApiVersion(apiVersion)})
 	if err != nil {
-		return nil, fmt.Errorf("%w: %w", errGetCreds, err)
+		return err
 	}
-
-	if err := validateUserAssignedMSIs(creds.ExplicitIdentities, request.ResourceIDs); err != nil {
-		return nil, err
-	}
-
-	// Tenant ID is a header passed to RP frontend, so set it here if it's not set
-	for _, identity := range creds.ExplicitIdentities {
-		if *identity.TenantID == "" {
-			*identity.TenantID = request.TenantID
+	for _, respErr := range []*internal.ErrorResponse{resp.JSON400, resp.JSON401, resp.JSON403, resp.JSON404, resp.JSON405, resp.JSON429, resp.JSON500, resp.JSON503} {
+		if respErr != nil {
+			return &ResponseError{WrappedError: *respErr}
 		}
 	}
-
-	credentialsObject := CredentialsObject{Values: creds.CredentialsObject, cloud: c.cloud}
-	if !credentialsObject.IsUserAssigned() {
-		return nil, errNoUserAssignedMSIs
-	}
-	return &credentialsObject, nil
+	return nil
 }
 
-func (c *ManagedIdentityClient) GetCredentialsObjectUserAssignedIdentities(ctx context.Context, request UserAssignedMSIRequest) (*CredentialsObject, error) {
-	return c.getUserAssignedIdentities(ctx, request)
-}
-
-func (c *ManagedIdentityClient) GetNestedCredentialsObjectUserAssignedIdentities(ctx context.Context, request UserAssignedMSIRequest) (*NestedCredentialsObject, error) {
-	ua, err := c.getUserAssignedIdentities(ctx, request)
+func (c *clientAdapter) GetSystemAssignedIdentityCredentials(ctx context.Context) (*ManagedIdentityCredentials, error) {
+	resp, err := c.delegate.GetcredWithResponse(ctx, &internal.GetcredParams{ApiVersion: internal.GetcredParamsApiVersion(apiVersion)})
 	if err != nil {
 		return nil, err
 	}
-
-	if len(ua.Values.ExplicitIdentities) == 0 ||
-		ua.Values.ExplicitIdentities[0] == nil {
-		return nil, errGetNestedCreds
-	}
-
-	return &NestedCredentialsObject{Values: *ua.Values.ExplicitIdentities[0], cloud: c.cloud}, nil
-}
-
-func validateResourceIDs(fl validator.FieldLevel) bool {
-	field := fl.Field()
-
-	// Confirm we have a slice of strings
-	if field.Kind() != reflect.Slice {
-		return false
-	}
-
-	if field.Type().Elem().Kind() != reflect.String {
-		return false
-	}
-
-	// Check we have at least one element
-	if field.Len() < 1 {
-		return false
-	}
-
-	// Check that all elements are valid resource IDs
-	for i := 0; i < field.Len(); i++ {
-		resourceID := field.Index(i).String()
-		if !isUserAssignedMSIResource(resourceID) {
-			return false
+	for _, respErr := range []*internal.ErrorResponse{resp.JSON400, resp.JSON401, resp.JSON403, resp.JSON404, resp.JSON429, resp.JSON500, resp.JSON503} {
+		if respErr != nil {
+			return nil, &ResponseError{WrappedError: *respErr}
 		}
 	}
-
-	return true
+	return resp.JSON200, nil
 }
 
-func isUserAssignedMSIResource(resourceID string) bool {
-	_, err := arm.ParseResourceID(resourceID)
+func (c *clientAdapter) GetUserAssignedIdentitiesCredentials(ctx context.Context, request UserAssignedIdentitiesRequest) (*ManagedIdentityCredentials, error) {
+	resp, err := c.delegate.GetcredsWithResponse(ctx, &internal.GetcredsParams{ApiVersion: internal.GetcredsParamsApiVersion(apiVersion)}, request)
 	if err != nil {
-		return false
+		return nil, err
 	}
-
-	resourceType, err := arm.ParseResourceType(resourceID)
-	if err != nil {
-		return false
+	for _, respErr := range []*internal.ErrorResponse{resp.JSON400, resp.JSON401, resp.JSON403, resp.JSON404, resp.JSON405, resp.JSON429, resp.JSON500, resp.JSON503} {
+		if respErr != nil {
+			return nil, &ResponseError{WrappedError: *respErr}
+		}
 	}
-
-	const expectedNamespace = "Microsoft.ManagedIdentity"
-	const expectedResourceType = "userAssignedIdentities"
-
-	return resourceType.Namespace == expectedNamespace && resourceType.Type == expectedResourceType
+	return resp.JSON200, nil
 }
 
-func getMsiHost(cloud string) string {
-	switch cloud {
-	case AzureUSGovCloud:
-		return usGovMSIEndpoint
-	default:
-		return publicMSIEndpoint
+func (c *clientAdapter) MoveIdentity(ctx context.Context, request MoveIdentityRequest) (*MoveIdentityResponse, error) {
+	resp, err := c.delegate.MoveidentityWithResponse(ctx, &internal.MoveidentityParams{ApiVersion: internal.MoveidentityParamsApiVersion(apiVersion)}, request)
+	if err != nil {
+		return nil, err
 	}
+	for _, respErr := range []*internal.ErrorResponse{resp.JSON400, resp.JSON401, resp.JSON403, resp.JSON404, resp.JSON405, resp.JSON429, resp.JSON500, resp.JSON503} {
+		if respErr != nil {
+			return nil, &ResponseError{WrappedError: *respErr}
+		}
+	}
+	return resp.JSON200, nil
 }
