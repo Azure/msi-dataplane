@@ -2,8 +2,10 @@ package dataplane
 
 import "github.com/Azure/msi-dataplane/pkg/dataplane/internal"
 
-type ManagedIdentityCredentials = internal.CredentialsObject
-type UserAssignedIdentityCredentials = internal.NestedCredentialsObject
+type ManagedIdentityCredentials = internal.ManagedIdentityCredentials
+type CustomClaims = internal.CustomClaims
+type DelegatedResource = internal.DelegatedResource
+type UserAssignedIdentityCredentials = internal.UserAssignedIdentityCredentials
 
 type UserAssignedIdentitiesRequest = internal.CredRequestDefinition
 

@@ -48,8 +48,49 @@ type CredRequestDefinition struct {
 	IdentityIds *[]string `json:"identityIds,omitempty"`
 }
 
-// CredentialsObject A system assigned managed identity + user assigned managed identity array.
-type CredentialsObject struct {
+// CustomClaims The custom claims to include into X509 Certificate
+type CustomClaims struct {
+	// XmsAzNwperimid The list of network perimeter ids. Maximum 5 network perimeter ids are supported
+	XmsAzNwperimid *[]string `json:"xms_az_nwperimid,omitempty"`
+
+	// XmsAzTm The trust mode of the azure resource asserted by RP. The value can either be 'azureinfra' or 'user'
+	XmsAzTm *string `json:"xms_az_tm,omitempty"`
+}
+
+// DelegatedResource A delegated resource credentials object
+type DelegatedResource struct {
+	// DelegationId MIRP delegationRecord persistent id.
+	DelegationId *string `json:"delegation_id,omitempty"`
+
+	// DelegationUrl URL to perform RP-to-RP delegation for non-ARM resources, requiring manual onboarding via MIRP team.
+	DelegationUrl *string `json:"delegation_url,omitempty"`
+
+	// ExplicitIdentities The identities requested by the caller.
+	ExplicitIdentities *[]UserAssignedIdentityCredentials `json:"explicit_identities,omitempty"`
+
+	// ImplicitIdentity A managed identity credentials object.
+	ImplicitIdentity *UserAssignedIdentityCredentials `json:"implicit_identity,omitempty"`
+
+	// InternalId Source resource Azure resource internal id.
+	InternalId *string `json:"internal_id,omitempty"`
+
+	// ResourceId Source resource Azure resource id.
+	ResourceId *string `json:"resource_id,omitempty"`
+}
+
+// ErrorResponse defines model for ErrorResponse.
+type ErrorResponse struct {
+	Error *struct {
+		// Code The error code.
+		Code *string `json:"code,omitempty"`
+
+		// Message A message describing the error.
+		Message *string `json:"message,omitempty"`
+	} `json:"error,omitempty"`
+}
+
+// ManagedIdentityCredentials A system assigned managed identity + user assigned managed identity array.
+type ManagedIdentityCredentials struct {
 	// AuthenticationEndpoint The AAD authentication endpoint for the identity system assigned identity. You can make token request toward this authentication endpoint.
 	AuthenticationEndpoint *string `json:"authentication_endpoint,omitempty"`
 
@@ -69,13 +110,13 @@ type CredentialsObject struct {
 	CustomClaims *CustomClaims `json:"custom_claims,omitempty"`
 
 	// DelegatedResources The delegated resources' credentials requested by the caller.
-	DelegatedResources *[]DelegatedResourceObject `json:"delegated_resources,omitempty"`
+	DelegatedResources *[]DelegatedResource `json:"delegated_resources,omitempty"`
 
 	// DelegationUrl URL to perform RP-to-RP delegation for non-ARM resources, requiring manual onboarding via MIRP team.
 	DelegationUrl *string `json:"delegation_url,omitempty"`
 
 	// ExplicitIdentities The user assigned identities requested by the caller. This array will be empty for system assigned credential only requests.
-	ExplicitIdentities *[]NestedCredentialsObject `json:"explicit_identities,omitempty"`
+	ExplicitIdentities *[]UserAssignedIdentityCredentials `json:"explicit_identities,omitempty"`
 
 	// InternalId An internal identifier for the resource in managed identity RP.
 	InternalId *string `json:"internal_id,omitempty"`
@@ -99,47 +140,6 @@ type CredentialsObject struct {
 	TenantId *string `json:"tenant_id,omitempty"`
 }
 
-// CustomClaims The custom claims to include into X509 Certificate
-type CustomClaims struct {
-	// XmsAzNwperimid The list of network perimeter ids. Maximum 5 network perimeter ids are supported
-	XmsAzNwperimid *[]string `json:"xms_az_nwperimid,omitempty"`
-
-	// XmsAzTm The trust mode of the azure resource asserted by RP. The value can either be 'azureinfra' or 'user'
-	XmsAzTm *string `json:"xms_az_tm,omitempty"`
-}
-
-// DelegatedResourceObject A delegated resource credentials object
-type DelegatedResourceObject struct {
-	// DelegationId MIRP delegationRecord persistent id.
-	DelegationId *string `json:"delegation_id,omitempty"`
-
-	// DelegationUrl URL to perform RP-to-RP delegation for non-ARM resources, requiring manual onboarding via MIRP team.
-	DelegationUrl *string `json:"delegation_url,omitempty"`
-
-	// ExplicitIdentities The identities requested by the caller.
-	ExplicitIdentities *[]NestedCredentialsObject `json:"explicit_identities,omitempty"`
-
-	// ImplicitIdentity A managed identity credentials object.
-	ImplicitIdentity *NestedCredentialsObject `json:"implicit_identity,omitempty"`
-
-	// InternalId Source resource Azure resource internal id.
-	InternalId *string `json:"internal_id,omitempty"`
-
-	// ResourceId Source resource Azure resource id.
-	ResourceId *string `json:"resource_id,omitempty"`
-}
-
-// ErrorResponse defines model for ErrorResponse.
-type ErrorResponse struct {
-	Error *struct {
-		// Code The error code.
-		Code *string `json:"code,omitempty"`
-
-		// Message A message describing the error.
-		Message *string `json:"message,omitempty"`
-	} `json:"error,omitempty"`
-}
-
 // MoveIdentityResponse defines model for MoveIdentityResponse.
 type MoveIdentityResponse struct {
 	// IdentityUrl the new identity url of the resource.
@@ -152,8 +152,8 @@ type MoveRequestBodyDefinition struct {
 	TargetResourceId *string `json:"targetResourceId,omitempty"`
 }
 
-// NestedCredentialsObject A managed identity credentials object.
-type NestedCredentialsObject struct {
+// UserAssignedIdentityCredentials A managed identity credentials object.
+type UserAssignedIdentityCredentials struct {
 	// AuthenticationEndpoint The AAD authentication endpoint for the user assigned identity. You can make token request toward this authentication endpoint.
 	AuthenticationEndpoint *string `json:"authentication_endpoint,omitempty"`
 
@@ -696,7 +696,7 @@ func (r DeleteidentityResponse) StatusCode() int {
 type GetcredResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *CredentialsObject
+	JSON200      *ManagedIdentityCredentials
 	JSON400      *ErrorResponse
 	JSON401      *ErrorResponse
 	JSON403      *ErrorResponse
@@ -725,7 +725,7 @@ func (r GetcredResponse) StatusCode() int {
 type GetcredsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *CredentialsObject
+	JSON200      *ManagedIdentityCredentials
 	JSON400      *ErrorResponse
 	JSON401      *ErrorResponse
 	JSON403      *ErrorResponse
@@ -924,7 +924,7 @@ func ParseGetcredResponse(rsp *http.Response) (*GetcredResponse, error) {
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest CredentialsObject
+		var dest ManagedIdentityCredentials
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -999,7 +999,7 @@ func ParseGetcredsResponse(rsp *http.Response) (*GetcredsResponse, error) {
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest CredentialsObject
+		var dest ManagedIdentityCredentials
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
