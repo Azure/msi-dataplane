@@ -1,9 +1,5 @@
 include ./.bingo/Variables.mk
 
-all-test:
-	@echo "Running all tests"
-	@./hack/test.sh -a
-
 # ADO does not expose an unauthenticated API for fetching one file, and the git server
 # does not have support for `git archive`, so we need to do some silly things to grab
 # just the OpenAPIv2 specification we need instead of the 10GiB in the rest of the repo...
@@ -22,23 +18,18 @@ pkg/dataplane/internal/msi-credentials-data-plane.openapi.v3.yaml: pkg/dataplane
 pkg/dataplane/internal/generated_client.go: $(OAPI_CODEGEN) pkg/dataplane/internal/msi-credentials-data-plane.openapi.v3.yaml
 	 $(OAPI_CODEGEN) --generate client,models --package internal pkg/dataplane/internal/msi-credentials-data-plane.openapi.v3.yaml > $@
 
+all-test:
+	@echo "Running all tests"
+	go test ./...
+
 generate:
 	@echo "Generating code"
-	@go generate ./...
+	go generate ./...
 
-integration-test:
-	@./hack/test.sh -i
-
-integration-test-record:
-	@./hack/test.sh -r
-
-lint:
+lint: $(GOLANGCI_LINT)
 	@echo "Running linter"
-	@golangci-lint run
+	$(GOLANGCI_LINT) run
 
 tidy:
 	@echo "Tidying up"
-	@go mod tidy
-
-unit-test:
-	@./hack/test.sh -u
+	go mod tidy
