@@ -1,12 +1,16 @@
 module github.com/Azure/msi-dataplane
 
-go 1.21
+go 1.21.0
+
+toolchain go1.22.5
 
 require (
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.11.1
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.7.0
 	github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azsecrets v1.1.0
+	github.com/fsnotify/fsnotify v1.8.0
 	github.com/go-playground/validator/v10 v10.22.0
+	github.com/gofrs/flock v0.12.1
 	go.uber.org/mock v0.4.0
 	gopkg.in/dnaeon/go-vcr.v3 v3.2.0
 )
@@ -24,7 +28,7 @@ require (
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c // indirect
 	golang.org/x/crypto v0.24.0 // indirect
-	golang.org/x/sys v0.21.0 // indirect
+	golang.org/x/sys v0.29.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 

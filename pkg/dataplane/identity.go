@@ -1,16 +1,23 @@
 package dataplane
 
 import (
+	"context"
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"io"
+	"log"
+	"os"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/arm"
 	azcloud "github.com/Azure/azure-sdk-for-go/sdk/azcore/cloud"
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/Azure/msi-dataplane/pkg/dataplane/swagger"
+	"github.com/fsnotify/fsnotify"
 )
 
 var (
@@ -21,6 +28,8 @@ var (
 	errNilField           = errors.New("expected non nil field in identity")
 	errNoUserAssignedMSIs = errors.New("credentials object does not contain user-assigned managed identities")
 	errResourceIDNotFound = errors.New("resource ID not found in user-assigned managed identity")
+	errloadCredentials    = errors.New("failed to load credentials from file")
+	errCreateFileWatcher  = errors.New("failed to create file watcher")
 )
 
 // CredentialsObject is a wrapper around the swagger.CredentialsObject to add additional functionality
@@ -33,8 +42,12 @@ type CredentialsObject struct {
 // NestedCredentialsObject is a wrapper around the swagger.NestedCredentialsObject to add additional functionality
 // swagger.NestedCredentials object can represent only user-assigned managed identity
 type NestedCredentialsObject struct {
-	Values swagger.NestedCredentialsObject
-	Cloud  string
+	Values      swagger.NestedCredentialsObject
+	Cloud       string
+	File        *File
+	fileWatcher *fsnotify.Watcher
+	watchOnce   sync.Once
+	mu          sync.Mutex
 }
 
 // This method may be used by clients to check if they can use the object as a user-assigned managed identity
@@ -69,12 +82,120 @@ func (c CredentialsObject) GetCredential(requestedResourceID string) (*azidentit
 
 // Get an AzIdentity credential for the given nested credential object
 // Clients can use the credential to get a token for the user-assigned identity
-func (n NestedCredentialsObject) GetCredential() (*azidentity.ClientCertificateCredential, error) {
+func (n *NestedCredentialsObject) GetCredential() (*azidentity.ClientCertificateCredential, error) {
 	if n.Values.ResourceID != nil {
 		return getClientCertificateCredential(n.Values, n.Cloud)
 	}
 
 	return nil, errResourceIDNotFound
+}
+
+func (n *NestedCredentialsObject) ReloadCredntialsOnChange() error {
+	if err := n.File.checkFileExists(); err != nil {
+		return err
+	}
+
+	err := n.initializeWatcher()
+	if err != nil {
+		return err
+	}
+	n.File.initializeFileLock()
+
+	// watch file events under new go routine.
+	// this will be called only once
+	n.watchOnce.Do(func() {
+		go n.watchEvents()
+	})
+
+	// we close the file watcher if adding the file to watch fails.
+	// this will also close the new go routine created to watch the file
+	err = n.fileWatcher.Add(n.File.Path)
+	if err != nil {
+		n.CloseFileWatch()
+		return err
+	}
+
+	return nil
+}
+
+// initializeWatcher creates a new file watcher if it doesn't already exist
+func (n *NestedCredentialsObject) initializeWatcher() error {
+	if n.fileWatcher != nil {
+		return nil
+	}
+
+	var err error
+	n.fileWatcher, err = fsnotify.NewWatcher()
+	if err != nil {
+		return fmt.Errorf("%w: %w", errCreateFileWatcher, err)
+	}
+
+	return nil
+}
+
+func (n *NestedCredentialsObject) watchEvents() {
+	for {
+		select {
+		case event, ok := <-n.fileWatcher.Events:
+			if !ok {
+				return
+			}
+			if event.Op.Has(fsnotify.Write) {
+				if err := n.loadValuesFromFile(); err != nil {
+					log.Printf("%v: %v", errloadCredentials, err)
+				}
+			}
+		case err, ok := <-n.fileWatcher.Errors:
+			if !ok {
+				return
+			}
+			log.Printf("%v: %v", errloadCredentials, err)
+		}
+	}
+}
+
+// loadValuesFromFile reads the file and unmarshals the contents into the NestedCredentialsObject
+func (n *NestedCredentialsObject) loadValuesFromFile() error {
+	if err := n.File.checkFileExists(); err != nil {
+		return err
+	}
+
+	file, err := os.Open(n.File.Path)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	locked, err := n.File.fileLock.TryLockContext(ctx, time.Second)
+	if err != nil {
+		return err
+	}
+
+	if locked {
+		defer n.File.fileLock.Unlock()
+
+		byteValue, err := io.ReadAll(file)
+		if err != nil {
+			return err
+		}
+
+		n.mu.Lock()
+		defer n.mu.Unlock()
+
+		err = n.Values.UnmarshalJSON(byteValue)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (n *NestedCredentialsObject) CloseFileWatch() {
+	n.fileWatcher.Close()
 }
 
 func getAzCoreCloud(cloud string) azcloud.Configuration {
