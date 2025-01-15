@@ -19,7 +19,7 @@ var (
 
 // Get an AzIdentity credential for the given nested credential object
 // Clients can use the credential to get a token for the user-assigned identity
-func GetCredential(cloud string, credential UserAssignedIdentityCredentials) (*azidentity.ClientCertificateCredential, error) {
+func GetCredential(cloud AzureCloud, credential UserAssignedIdentityCredentials) (*azidentity.ClientCertificateCredential, error) {
 	// Double check nil pointers so we don't panic
 	fieldsToCheck := map[string]*string{
 		"clientID":               credential.ClientId,
@@ -73,9 +73,9 @@ func GetCredential(cloud string, credential UserAssignedIdentityCredentials) (*a
 	return azidentity.NewClientCertificateCredential(*credential.TenantId, *credential.ClientId, crt, key, opts)
 }
 
-func getAzCoreCloud(cloud string) (azcloud.Configuration, error) {
+func getAzCoreCloud(cloud AzureCloud) (azcloud.Configuration, error) {
 	switch cloud {
-	case AzureUSGovCloud:
+	case AzureUSGovernmentCloud:
 		return azcloud.AzureGovernment, nil
 	case AzurePublicCloud:
 		return azcloud.AzurePublic, nil
