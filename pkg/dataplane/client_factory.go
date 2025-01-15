@@ -46,11 +46,11 @@ type clientFactory struct {
 
 var _ ClientFactory = (*clientFactory)(nil)
 
-type HttpRequestDoerFunc func(*http.Request) (*http.Response, error)
+type httpRequestDoerFunc func(*http.Request) (*http.Response, error)
 
-var _ internal.HttpRequestDoer = (HttpRequestDoerFunc)(nil)
+var _ internal.HttpRequestDoer = (httpRequestDoerFunc)(nil)
 
-func (f HttpRequestDoerFunc) Do(req *http.Request) (*http.Response, error) { return f(req) }
+func (f httpRequestDoerFunc) Do(req *http.Request) (*http.Response, error) { return f(req) }
 
 func (c *clientFactory) NewClient(identityURL string) (Client, error) {
 	parsedURL, err := url.ParseRequestURI(identityURL)
@@ -65,7 +65,7 @@ func (c *clientFactory) NewClient(identityURL string) (Client, error) {
 
 	client, err := internal.NewClientWithResponses(
 		server.String(),
-		internal.WithHTTPClient(HttpRequestDoerFunc(func(req *http.Request) (*http.Response, error) {
+		internal.WithHTTPClient(httpRequestDoerFunc(func(req *http.Request) (*http.Response, error) {
 			azreq, err := runtime.NewRequestFromRequest(req)
 			if err != nil {
 				return nil, err
