@@ -32,7 +32,7 @@ type ClientFactory interface {
 // is returned that can create clients on-demand.
 func NewClientFactory(cred azcore.TokenCredential, audience string, opts *azcore.ClientOptions) (ClientFactory, error) {
 	azCoreClient, err := azcore.NewClient(moduleName, moduleVersion, runtime.PipelineOptions{
-		PerCall: []policy.Policy{NewAuthenticatorPolicy(cred, audience)},
+		PerCall: []policy.Policy{newAuthenticatorPolicy(cred, audience)},
 	}, opts)
 	if err != nil {
 		return nil, fmt.Errorf("error creating azcore client: %w", err)

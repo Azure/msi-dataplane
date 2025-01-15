@@ -104,7 +104,7 @@ func TestNewAuthenticatorPolicy(t *testing.T) {
 
 			pipeline := runtime.NewPipeline("", "", runtime.PipelineOptions{
 				PerCall: []policy.Policy{
-					NewAuthenticatorPolicy(&FakeCredential{}, "https://identity_url.com/"),
+					newAuthenticatorPolicy(&FakeCredential{}, "https://identity_url.com/"),
 				},
 			}, &policy.ClientOptions{
 				Transport: tt.fakeTransport,
