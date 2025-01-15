@@ -19,7 +19,7 @@ var (
 )
 
 // Authenticating with MSI: https://eng.ms/docs/products/arm/rbac/managed_identities/msionboardinginteractionwithmsi .
-func NewAuthenticatorPolicy(cred azcore.TokenCredential, audience string) policy.Policy {
+func newAuthenticatorPolicy(cred azcore.TokenCredential, audience string) policy.Policy {
 	return runtime.NewBearerTokenPolicy(cred, nil, &policy.BearerTokenOptions{
 		AuthorizationHandler: policy.AuthorizationHandler{
 			// Make an unauthenticated request
@@ -30,6 +30,7 @@ func NewAuthenticatorPolicy(cred azcore.TokenCredential, audience string) policy
 			OnChallenge: func(req *policy.Request, resp *http.Response, authenticateAndAuthorize func(policy.TokenRequestOptions) error) error {
 				authHeader := resp.Header.Get(headerWWWAuthenticate)
 
+				// TODO:(skuznets): write a proper parser, https://www.rfc-editor.org/rfc/rfc9110.html#name-www-authenticate
 				// Parse the returned challenge
 				parts := strings.Split(authHeader, " ")
 				vals := map[string]string{}
