@@ -50,8 +50,8 @@ func TestNewAuthenticatorPolicy(t *testing.T) {
 				},
 			},
 			validateRes: func(g *WithT, fakeTransport *fakeTransport, resp *http.Response, err error) {
-				g.Expect(fakeTransport.reqs[0].Header).NotTo(HaveKey(headerAuthorization))
-				g.Expect(fakeTransport.reqs[1].Header.Get(headerAuthorization)).To(Equal(
+				g.Expect(fakeTransport.reqs[0].Header).NotTo(HaveKey("authorization"))
+				g.Expect(fakeTransport.reqs[1].Header.Get("authorization")).To(Equal(
 					"Bearer fake_token, tenantID 5d929ae3-b37c-46aa-a3c8-c1558902f101, " +
 						"scopes [https://identity_url.com//.default]"))
 				g.Expect(err).NotTo(HaveOccurred())

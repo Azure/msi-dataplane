@@ -28,7 +28,7 @@ func newAuthenticatorPolicy(cred azcore.TokenCredential, audience string) policy
 			},
 			// Inspect WWW-Authenticate header returned from challenge
 			OnChallenge: func(req *policy.Request, resp *http.Response, authenticateAndAuthorize func(policy.TokenRequestOptions) error) error {
-				authHeader := resp.Header.Get(headerWWWAuthenticate)
+				authHeader := resp.Header.Get("WWW-Authenticate")
 
 				// TODO:(skuznets): write a proper parser, https://www.rfc-editor.org/rfc/rfc9110.html#name-www-authenticate
 				// Parse the returned challenge
@@ -43,7 +43,7 @@ func newAuthenticatorPolicy(cred azcore.TokenCredential, audience string) policy
 					}
 				}
 
-				u, err := url.Parse(vals[headerAuthorization])
+				u, err := url.Parse(vals["authorization"])
 				if err != nil {
 					return fmt.Errorf("%w: %w", errInvalidAuthHeader, err)
 				}
