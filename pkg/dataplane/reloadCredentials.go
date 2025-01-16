@@ -2,8 +2,7 @@ package dataplane
 
 import (
 	"context"
-	"errors"
-	"log"
+	"log/slog"
 	"os"
 	"sync"
 	"time"
@@ -13,48 +12,57 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/Azure/msi-dataplane/pkg/dataplane/swagger"
 	"github.com/fsnotify/fsnotify"
+	"github.com/go-logr/logr"
 )
 
-var (
+const (
 	// Errors returned when reloading credentials
-	errCreateFileWatcher = errors.New("failed to create file watcher")
-	errAddFileToWatcher  = errors.New("failed to add credentialFile to file watcher")
-	errLoadCredentials   = errors.New("failed to load credentials from file")
+	errCreateFileWatcher = "failed to create file watcher"
+	errAddFileToWatcher  = "failed to add credentialFile to file watcher"
+	errLoadCredentials   = "failed to load credentials from file"
 )
 
 type reloadingCredential struct {
 	currentValue *azidentity.ClientCertificateCredential
 	cloud        string
 	lock         *sync.RWMutex
-	logger       *log.Logger
+	logger       *logr.Logger
+	ticker       *time.Ticker
 }
 
 type Option func(*reloadingCredential)
 
 // WithLogger sets a custom logger for the reloadingCredential.
 // This can be useful for debugging or logging purposes.
-func WithLogger(logger *log.Logger) Option {
+func WithLogger(logger *logr.Logger) Option {
 	return func(c *reloadingCredential) {
 		c.logger = logger
 	}
 }
 
+// SetTickker sets a custom timer for the reloadingCredential.
+// This can be useful for loading credential file periodically.
+func SetTickker(d time.Duration) Option {
+	return func(c *reloadingCredential) {
+		c.ticker = time.NewTicker(d * time.Hour)
+	}
+}
+
 // NewUserAssignedIdentityCredential creates a new reloadingCredential for a user-assigned identity.
-// ctx is used to manage the lifecycle of the credential, allowing for cancellation and timeouts.
+// ctx is used to manage the lifecycle of the reloader, allowing for cancellation if reloading is no longer needed.
 // cloud specifies the cloud environment.
 // credentialPath is the path to the credential file.
-// opts allows for additional configuration, such as setting a custom logger.
+// opts allows for additional configuration, such as setting a custom logger, periodic reload time.
 //
 // The function ensures that a valid token is loaded before returning the credential.
 // It also starts a background process to watch for changes to the credential file and reloads it as necessary.
-// In any case the maximum time that we wait before reload is six hours.
-// Note that while the credential will attempt to keep the token up-to-date, there may be a small delay between
-// when the token expires and when it is reloaded. Users should handle token expiration errors appropriately.
 func NewUserAssignedIdentityCredential(ctx context.Context, cloud string, credentialPath string, opts ...Option) (azcore.TokenCredential, error) {
+	defualtLog := logr.FromSlogHandler(slog.NewTextHandler(os.Stdout, nil))
 	credential := &reloadingCredential{
 		cloud:  cloud,
 		lock:   &sync.RWMutex{},
-		logger: log.Default(),
+		logger: &defualtLog,
+		ticker: time.NewTicker(6 * time.Hour),
 	}
 
 	for _, opt := range opts {
@@ -83,22 +91,20 @@ func (r *reloadingCredential) start(ctx context.Context, cloud, credentialFile s
 	// set up the file watcher, call load() when we see events or on some timer in case no events are delivered
 	fileWatcher, err := fsnotify.NewWatcher()
 	if err != nil {
-		r.logger.Printf("%v, %v", errCreateFileWatcher, err)
+		r.logger.Error(err, errCreateFileWatcher)
 	}
 	// we close the file watcher if adding the file to watch fails.
 	// this will also close the new go routine created to watch the file
 	err = fileWatcher.Add(credentialFile)
 	if err != nil {
 		fileWatcher.Close()
-		r.logger.Printf("%v, %v", errAddFileToWatcher, err)
+		r.logger.Error(err, errAddFileToWatcher)
 		return
 	}
 
-	ticker := time.NewTicker(6 * time.Hour)
-
 	go func() {
 		defer fileWatcher.Close()
-		defer ticker.Stop()
+		defer r.ticker.Stop()
 		for {
 			select {
 			case event, ok := <-fileWatcher.Events:
@@ -107,19 +113,18 @@ func (r *reloadingCredential) start(ctx context.Context, cloud, credentialFile s
 				}
 				if event.Op.Has(fsnotify.Write) {
 					if err := r.load(cloud, credentialFile); err != nil {
-						r.logger.Printf("%v, %v", errLoadCredentials, err)
+						r.logger.Error(err, errLoadCredentials)
 					}
 				}
-			case <-ticker.C:
+			case <-r.ticker.C:
 				if err := r.load(cloud, credentialFile); err != nil {
-					r.logger.Printf("%v, %v", errLoadCredentials, err)
+					r.logger.Error(err, errLoadCredentials)
 				}
 			case err, ok := <-fileWatcher.Errors:
 				if !ok {
 					return
 				}
-				r.logger.Printf("%v, %v", errLoadCredentials, err)
-			// Keep the function running until the context is done
+				r.logger.Error(err, errLoadCredentials)
 			case <-ctx.Done():
 				return
 			}
