@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"sync"
+	"time"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
@@ -93,8 +94,11 @@ func (r *reloadingCredential) start(ctx context.Context, cloud, credentialFile s
 		return
 	}
 
+	ticker := time.NewTicker(6 * time.Hour)
+
 	go func() {
 		defer fileWatcher.Close()
+		defer ticker.Stop()
 		for {
 			select {
 			case event, ok := <-fileWatcher.Events:
@@ -102,9 +106,13 @@ func (r *reloadingCredential) start(ctx context.Context, cloud, credentialFile s
 					return
 				}
 				if event.Op.Has(fsnotify.Write) {
-					if err := r.load(cloud, credentialFile); err != nil && r.logger != nil {
+					if err := r.load(cloud, credentialFile); err != nil {
 						r.logger.Printf("%v, %v", errLoadCredentials, err)
 					}
+				}
+			case <-ticker.C:
+				if err := r.load(cloud, credentialFile); err != nil {
+					r.logger.Printf("%v, %v", errLoadCredentials, err)
 				}
 			case err, ok := <-fileWatcher.Errors:
 				if !ok {
