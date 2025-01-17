@@ -40,11 +40,11 @@ func WithLogger(logger *logr.Logger) Option {
 	}
 }
 
-// SetTickker sets a custom timer for the reloadingCredential.
+// WithBackstopRefresh sets a custom timer for the reloadingCredential.
 // This can be useful for loading credential file periodically.
-func SetTickker(d time.Duration) Option {
+func WithBackstopRefresh(d time.Duration) Option {
 	return func(c *reloadingCredential) {
-		c.ticker = time.NewTicker(d * time.Hour)
+		c.ticker = time.NewTicker(d)
 	}
 }
 
@@ -57,11 +57,11 @@ func SetTickker(d time.Duration) Option {
 // The function ensures that a valid token is loaded before returning the credential.
 // It also starts a background process to watch for changes to the credential file and reloads it as necessary.
 func NewUserAssignedIdentityCredential(ctx context.Context, cloud string, credentialPath string, opts ...Option) (azcore.TokenCredential, error) {
-	defualtLog := logr.FromSlogHandler(slog.NewTextHandler(os.Stdout, nil))
+	defaultLog := logr.FromSlogHandler(slog.NewTextHandler(os.Stdout, nil))
 	credential := &reloadingCredential{
 		cloud:  cloud,
 		lock:   &sync.RWMutex{},
-		logger: &defualtLog,
+		logger: &defaultLog,
 		ticker: time.NewTicker(6 * time.Hour),
 	}
 
@@ -109,6 +109,7 @@ func (r *reloadingCredential) start(ctx context.Context, cloud, credentialFile s
 			select {
 			case event, ok := <-fileWatcher.Events:
 				if !ok {
+					r.logger.Info("stopping credential reloader since file watcher has no events")
 					return
 				}
 				if event.Op.Has(fsnotify.Write) {
@@ -126,6 +127,7 @@ func (r *reloadingCredential) start(ctx context.Context, cloud, credentialFile s
 				}
 				r.logger.Error(err, errLoadCredentials)
 			case <-ctx.Done():
+				r.logger.Info("user signaled context cancel, stopping credential reloader")
 				return
 			}
 		}
