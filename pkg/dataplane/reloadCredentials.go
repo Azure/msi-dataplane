@@ -149,20 +149,6 @@ func (r *reloadingCredential) load(cloud, credentialFile string) error {
 		return err
 	}
 
-	if r.notBefore == "" {
-		r.notBefore = *nestedCreds.NotBefore
-	} else {
-		r.lock.Lock()
-		err, ok := isLoadedCredentialNewer(*nestedCreds.NotBefore, r.notBefore)
-		r.lock.Unlock()
-		if err != nil {
-			return err
-		}
-		if !ok {
-			return nil
-		}
-	}
-
 	var newCertValue *azidentity.ClientCertificateCredential
 	newCertValue, err = getClientCertificateCredential(nestedCreds, cloud)
 	if err != nil {
@@ -171,6 +157,16 @@ func (r *reloadingCredential) load(cloud, credentialFile string) error {
 
 	r.lock.Lock()
 	defer r.lock.Unlock()
+	if r.notBefore != "" {
+		err, ok := isLoadedCredentialNewer(*nestedCreds.NotBefore, r.notBefore)
+		if err != nil {
+			return err
+		}
+		if !ok {
+			return nil
+		}
+	}
+
 	r.currentValue = newCertValue
 	r.notBefore = *nestedCreds.NotBefore
 
@@ -188,5 +184,5 @@ func isLoadedCredentialNewer(newCred string, currentCred string) (error, bool) {
 		return err, false
 	}
 
-	return nil, parsedNewCred.After(parsedCurrentCred) || parsedNewCred.Equal(parsedCurrentCred)
+	return nil, parsedNewCred.After(parsedCurrentCred)
 }
