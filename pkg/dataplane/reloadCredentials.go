@@ -22,25 +22,21 @@ const (
 	errLoadCredentials   = "failed to load credentials from file"
 )
 
-type ReloadingCredential struct {
-	ClientCertificateCredential *ClientCertificateCredential
-	cloud                       string
-	lock                        *sync.RWMutex
-	logger                      *logr.Logger
-	ticker                      *time.Ticker
-}
-
-type ClientCertificateCredential struct {
+type reloadingCredential struct {
 	currentValue *azidentity.ClientCertificateCredential
-	NotBefore    string
+	notBefore    string
+	cloud        string
+	lock         *sync.RWMutex
+	logger       *logr.Logger
+	ticker       *time.Ticker
 }
 
-type Option func(*ReloadingCredential)
+type Option func(*reloadingCredential)
 
 // WithLogger sets a custom logger for the reloadingCredential.
 // This can be useful for debugging or logging purposes.
 func WithLogger(logger *logr.Logger) Option {
-	return func(c *ReloadingCredential) {
+	return func(c *reloadingCredential) {
 		c.logger = logger
 	}
 }
@@ -48,7 +44,7 @@ func WithLogger(logger *logr.Logger) Option {
 // WithBackstopRefresh sets a custom timer for the reloadingCredential.
 // This can be useful for loading credential file periodically.
 func WithBackstopRefresh(d time.Duration) Option {
-	return func(c *ReloadingCredential) {
+	return func(c *reloadingCredential) {
 		c.ticker = time.NewTicker(d)
 	}
 }
@@ -63,7 +59,7 @@ func WithBackstopRefresh(d time.Duration) Option {
 // It also starts a background process to watch for changes to the credential file and reloads it as necessary.
 func NewUserAssignedIdentityCredential(ctx context.Context, cloud string, credentialPath string, opts ...Option) (azcore.TokenCredential, error) {
 	defaultLog := logr.FromSlogHandler(slog.NewTextHandler(os.Stdout, nil))
-	credential := &ReloadingCredential{
+	credential := &reloadingCredential{
 		cloud:  cloud,
 		lock:   &sync.RWMutex{},
 		logger: &defaultLog,
@@ -86,13 +82,13 @@ func NewUserAssignedIdentityCredential(ctx context.Context, cloud string, creden
 // GetToken retrieves the current token from the reloadingCredential.
 // It uses a read lock to ensure that the token is not being modified while it is being read.
 // options specifies additional options for the token request.
-func (r *ReloadingCredential) GetToken(ctx context.Context, options policy.TokenRequestOptions) (azcore.AccessToken, error) {
+func (r *reloadingCredential) GetToken(ctx context.Context, options policy.TokenRequestOptions) (azcore.AccessToken, error) {
 	r.lock.RLock()
 	defer r.lock.RUnlock()
-	return r.ClientCertificateCredential.currentValue.GetToken(ctx, options)
+	return r.currentValue.GetToken(ctx, options)
 }
 
-func (r *ReloadingCredential) start(ctx context.Context, cloud, credentialFile string) {
+func (r *reloadingCredential) start(ctx context.Context, cloud, credentialFile string) {
 	// set up the file watcher, call load() when we see events or on some timer in case no events are delivered
 	fileWatcher, err := fsnotify.NewWatcher()
 	if err != nil {
@@ -128,6 +124,7 @@ func (r *ReloadingCredential) start(ctx context.Context, cloud, credentialFile s
 				}
 			case err, ok := <-fileWatcher.Errors:
 				if !ok {
+					r.logger.Info("stopping credential reloader since file watcher has no events")
 					return
 				}
 				r.logger.Error(err, errLoadCredentials)
@@ -139,7 +136,7 @@ func (r *ReloadingCredential) start(ctx context.Context, cloud, credentialFile s
 	}()
 }
 
-func (r *ReloadingCredential) load(cloud, credentialFile string) error {
+func (r *reloadingCredential) load(cloud, credentialFile string) error {
 	// read the file from the filesystem and update the current value we're holding on to if the certificate we read is newer, making sure to not step on the toes of anyone calling GetToken()
 	byteValue, err := os.ReadFile(credentialFile)
 	if err != nil {
@@ -152,12 +149,18 @@ func (r *ReloadingCredential) load(cloud, credentialFile string) error {
 		return err
 	}
 
-	err, ok := isLoadedCredentialNewer(*nestedCreds.NotBefore, r.ClientCertificateCredential.NotBefore)
-	if err != nil {
-		return err
-	}
-	if !ok {
-		return nil
+	if r.notBefore == "" {
+		r.notBefore = *nestedCreds.NotBefore
+	} else {
+		r.lock.Lock()
+		err, ok := isLoadedCredentialNewer(*nestedCreds.NotBefore, r.notBefore)
+		r.lock.Unlock()
+		if err != nil {
+			return err
+		}
+		if !ok {
+			return nil
+		}
 	}
 
 	var newCertValue *azidentity.ClientCertificateCredential
@@ -168,8 +171,8 @@ func (r *ReloadingCredential) load(cloud, credentialFile string) error {
 
 	r.lock.Lock()
 	defer r.lock.Unlock()
-	r.ClientCertificateCredential.currentValue = newCertValue
-	r.ClientCertificateCredential.NotBefore = *nestedCreds.NotBefore
+	r.currentValue = newCertValue
+	r.notBefore = *nestedCreds.NotBefore
 
 	return nil
 }
