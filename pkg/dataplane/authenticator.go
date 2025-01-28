@@ -1,7 +1,6 @@
 package dataplane
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -68,53 +67,4 @@ func newAuthenticatorPolicy(cred azcore.TokenCredential, audience string) policy
 			},
 		},
 	})
-}
-
-type DynamicAuthenticationEndpointToken interface {
-	azcore.TokenCredential
-
-	// Sentinel is a no-op method we declare here to ensure that only
-	// dynamic authentication endpoint tokens can be passed to the
-	// authenticator policy above.
-	Sentinel()
-}
-
-type dynamicAuthenticationEndpointToken struct {
-	newDelegate func(endpoint string) azcore.TokenCredential
-}
-
-var _ DynamicAuthenticationEndpointToken = (*dynamicAuthenticationEndpointToken)(nil)
-
-func (d dynamicAuthenticationEndpointToken) GetToken(ctx context.Context, options interface{}) (interface{}, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (d dynamicAuthenticationEndpointToken) Sentinel() {}
-
-type authEndpointKey int
-
-const (
-	// authEndpointContextKey is the context key for an auth endpoint.
-	authEndpointContextKey authEndpointKey = iota
-)
-
-// withAuthEndpointInContext returns a context with the given shard set.
-func withAuthEndpointInContext(parent context.Context, authEndpoint string) context.Context {
-	return context.WithValue(parent, authEndpointContextKey, authEndpoint)
-}
-
-// authEndpointFromContext returns the value of the shard key on the ctx,
-// or an empty Name if there is no shard key.
-func authEndpointFromContext(ctx context.Context) string {
-	authEndpoint, ok := ctx.Value(authEndpointContextKey).(string)
-	if !ok {
-		return ""
-	}
-	return authEndpoint
-}
-
-// NewDynamicAuthenticationEndpointToken creates a token credential that can dynamically
-func NewDynamicAuthenticationEndpointToken(newDelegate func(endpoint string) azcore.TokenCredential) DynamicAuthenticationEndpointToken {
-
 }
