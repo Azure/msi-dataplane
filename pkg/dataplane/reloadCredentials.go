@@ -25,7 +25,7 @@ const (
 type reloadingCredential struct {
 	currentValue *azidentity.ClientCertificateCredential
 	notBefore    string
-	cloud        string
+	cloud        AzureCloud
 	lock         *sync.RWMutex
 	logger       *logr.Logger
 	ticker       *time.Ticker
@@ -57,7 +57,7 @@ func WithBackstopRefresh(d time.Duration) Option {
 //
 // The function ensures that a valid token is loaded before returning the credential.
 // It also starts a background process to watch for changes to the credential file and reloads it as necessary.
-func NewUserAssignedIdentityCredential(ctx context.Context, cloud string, credentialPath string, opts ...Option) (azcore.TokenCredential, error) {
+func NewUserAssignedIdentityCredential(ctx context.Context, cloud AzureCloud, credentialPath string, opts ...Option) (azcore.TokenCredential, error) {
 	defaultLog := logr.FromSlogHandler(slog.NewTextHandler(os.Stdout, nil))
 	credential := &reloadingCredential{
 		cloud:  cloud,
@@ -88,7 +88,7 @@ func (r *reloadingCredential) GetToken(ctx context.Context, options policy.Token
 	return r.currentValue.GetToken(ctx, options)
 }
 
-func (r *reloadingCredential) start(ctx context.Context, cloud, credentialFile string) {
+func (r *reloadingCredential) start(ctx context.Context, cloud AzureCloud, credentialFile string) {
 	// set up the file watcher, call load() when we see events or on some timer in case no events are delivered
 	fileWatcher, err := fsnotify.NewWatcher()
 	if err != nil {
@@ -136,7 +136,7 @@ func (r *reloadingCredential) start(ctx context.Context, cloud, credentialFile s
 	}()
 }
 
-func (r *reloadingCredential) load(cloud, credentialFile string) error {
+func (r *reloadingCredential) load(cloud AzureCloud, credentialFile string) error {
 	// read the file from the filesystem and update the current value we're holding on to if the certificate we read is newer, making sure to not step on the toes of anyone calling GetToken()
 	byteValue, err := os.ReadFile(credentialFile)
 	if err != nil {
