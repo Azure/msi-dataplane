@@ -18,13 +18,11 @@ pkg/dataplane/internal/msi-credentials-data-plane.openapi.v3.yaml: pkg/dataplane
 pkg/dataplane/internal/generated_client.go: $(OAPI_CODEGEN) pkg/dataplane/internal/msi-credentials-data-plane.openapi.v3.yaml
 	 $(OAPI_CODEGEN) --generate client,models --package internal pkg/dataplane/internal/msi-credentials-data-plane.openapi.v3.yaml > $@
 
-all-test:
+test:
 	@echo "Running all tests"
 	go test ./...
 
-generate:
-	@echo "Generating code"
-	go generate ./...
+generate: pkg/dataplane/internal/generated_client.go
 
 lint: $(GOLANGCI_LINT)
 	@echo "Running linter"
@@ -33,3 +31,10 @@ lint: $(GOLANGCI_LINT)
 tidy:
 	@echo "Tidying up"
 	go mod tidy
+
+verify: lint tidy test generate
+	if ! git diff --quiet HEAD; then \
+		git diff; \
+		echo "You need to run 'make generate' to update generated files and commit them"; \
+		exit 1; \
+	fi
