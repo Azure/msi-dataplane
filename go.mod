@@ -27,7 +27,6 @@ require (
 
 require (
 	github.com/Azure/azure-sdk-for-go/sdk/internal v1.10.0 // indirect
-	github.com/gofrs/uuid v4.4.0+incompatible
 	github.com/onsi/gomega v1.33.0
 	golang.org/x/net v0.34.0 // indirect
 	golang.org/x/text v0.21.0 // indirect

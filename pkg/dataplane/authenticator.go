@@ -11,16 +11,15 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/runtime"
 	"github.com/Azure/msi-dataplane/pkg/dataplane/internal/challenge"
-	"github.com/gofrs/uuid"
+	"github.com/go-logr/logr"
 )
 
 var (
 	errInvalidAuthHeader = errors.New("could not parse the provided WWW-Authenticate header")
-	errInvalidTenantID   = errors.New("the provided tenantID is invalid")
 )
 
 // Authenticating with MSI: https://eng.ms/docs/products/arm/rbac/managed_identities/msionboardinginteractionwithmsi .
-func newAuthenticatorPolicy(cred azcore.TokenCredential, audience string) policy.Policy {
+func newAuthenticatorPolicy(cred azcore.TokenCredential, audience string, logger *logr.Logger) policy.Policy {
 	return runtime.NewBearerTokenPolicy(cred, nil, &policy.BearerTokenOptions{
 		AuthorizationHandler: policy.AuthorizationHandler{
 			// Make an unauthenticated request
@@ -30,7 +29,7 @@ func newAuthenticatorPolicy(cred azcore.TokenCredential, audience string) policy
 			// Inspect WWW-Authenticate header returned from challenge
 			OnChallenge: func(req *policy.Request, resp *http.Response, authenticateAndAuthorize func(policy.TokenRequestOptions) error) error {
 				// we expect 'Bearer authorization="https://login.windows-ppe.net/5D929AE3-B37C-46AA-A3C8-C1558902F101"'
-				authParam, err := parseChallengeHeader(resp.Header)
+				authParam, err := parseChallengeHeader(logger, resp.Header)
 				if err != nil {
 					return err
 				}
@@ -40,11 +39,6 @@ func newAuthenticatorPolicy(cred azcore.TokenCredential, audience string) policy
 					return fmt.Errorf("%w: %w", errInvalidAuthHeader, err)
 				}
 				tenantID := strings.ToLower(strings.Trim(u.Path, "/"))
-
-				// check if valid tenantId
-				if _, err = uuid.FromString(tenantID); err != nil {
-					return fmt.Errorf("%w: %w", errInvalidTenantID, err)
-				}
 
 				req.Raw().Context()
 
@@ -61,10 +55,10 @@ func newAuthenticatorPolicy(cred azcore.TokenCredential, audience string) policy
 	})
 }
 
-func parseChallengeHeader(headers http.Header) (string, error) {
+func parseChallengeHeader(logger *logr.Logger, headers http.Header) (string, error) {
 	val, err := antlrParseChallengeHeader(headers)
 	if err != nil {
-		fmt.Printf("failed to parse challenge header, falling back to legacy: %v\n", err)
+		logger.Error(err, "failed to parse challenge header, falling back to legacy")
 		return legacyParseChallengeHeader(headers)
 	}
 	return val, nil
