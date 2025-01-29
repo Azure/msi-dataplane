@@ -10,6 +10,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/runtime"
+	"github.com/Azure/msi-dataplane/pkg/dataplane/internal/challenge"
 	"github.com/gofrs/uuid"
 )
 
@@ -28,22 +29,29 @@ func newAuthenticatorPolicy(cred azcore.TokenCredential, audience string) policy
 			},
 			// Inspect WWW-Authenticate header returned from challenge
 			OnChallenge: func(req *policy.Request, resp *http.Response, authenticateAndAuthorize func(policy.TokenRequestOptions) error) error {
-				authHeader := resp.Header.Get("WWW-Authenticate")
-
-				// TODO:(skuznets): write a proper parser, https://www.rfc-editor.org/rfc/rfc9110.html#name-www-authenticate
-				// Parse the returned challenge
-				parts := strings.Split(authHeader, " ")
-				vals := map[string]string{}
-				for _, part := range parts {
-					subParts := strings.Split(part, "=")
-					if len(subParts) == 2 {
-						stripped := strings.ReplaceAll(subParts[1], "\"", "")
-						stripped = strings.TrimSuffix(stripped, ",")
-						vals[subParts[0]] = stripped
+				// we expect 'Bearer authorization="https://login.windows-ppe.net/5D929AE3-B37C-46AA-A3C8-C1558902F101"'
+				challenges, err := challenge.Parse(resp.Header)
+				if err != nil {
+					return fmt.Errorf("%w: %w", errInvalidAuthHeader, err)
+				}
+				if len(challenges) == 0 {
+					return fmt.Errorf("%w: %s", errInvalidAuthHeader, "no challenges found")
+				}
+				var bearer *challenge.Challenge
+				for _, c := range challenges {
+					if c.Scheme == "Bearer" {
+						bearer = &c
 					}
 				}
+				if bearer == nil {
+					return fmt.Errorf("%w: %s", errInvalidAuthHeader, "no bearer challenge found")
+				}
+				authParam, provided := bearer.Parameters["authorization"]
+				if !provided {
+					return fmt.Errorf("%w: %s", errInvalidAuthHeader, "no authorization parameter in bearer challenge")
+				}
 
-				u, err := url.Parse(vals["authorization"])
+				u, err := url.Parse(authParam)
 				if err != nil {
 					return fmt.Errorf("%w: %w", errInvalidAuthHeader, err)
 				}
