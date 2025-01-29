@@ -11,7 +11,7 @@ import (
 
 type Listener struct {
 	challenges []Challenge
-	errors []error
+	errors     []error
 	*BaseChallengeListener
 }
 
@@ -41,9 +41,21 @@ func (s *Listener) EnterChallenge(ctx *ChallengeContext) {
 	s.challenges = append(s.challenges, challenge)
 }
 
+type errorSink struct {
+	*antlr.DefaultErrorListener
+	errors []error
+}
+
+func (e *errorSink) SyntaxError(recognizer antlr.Recognizer, offendingSymbol interface{}, line, column int, msg string, exception antlr.RecognitionException) {
+	e.errors = append(e.errors, fmt.Errorf("syntax error in line %d:%d: %v: %s", line, column, offendingSymbol, msg))
+}
+
+var _ antlr.ErrorListener = (*errorSink)(nil)
+
 func Parse(headers http.Header) ([]Challenge, error) {
 	var challenges []Challenge
 	var errors []error
+	parsingErrors := &errorSink{}
 	for _, value := range headers.Values("WWW-Authenticate") {
 		p := NewChallengeParser(
 			antlr.NewCommonTokenStream(
@@ -53,20 +65,27 @@ func Parse(headers http.Header) ([]Challenge, error) {
 				0,
 			),
 		)
-		p.AddErrorListener(antlr.NewDiagnosticErrorListener(true))
+		p.AddErrorListener(parsingErrors)
 		listener := &Listener{}
 		antlr.ParseTreeWalkerDefault.Walk(listener, p.Header())
 		challenges = append(challenges, listener.challenges...)
 		errors = append(errors, listener.errors...)
 	}
+	if parsingErrors.errors != nil {
+		return nil, collapseErrors(parsingErrors.errors)
+	}
 	if errors != nil {
-		var reasons []string
-		for _, err := range errors {
-			reasons = append(reasons, err.Error())
-		}
-		return nil, fmt.Errorf("parsing failed: %s", strings.Join(reasons, ","))
+		return nil, collapseErrors(errors)
 	}
 	return challenges, nil
+}
+
+func collapseErrors(errors []error) error {
+	var reasons []string
+	for _, err := range errors {
+		reasons = append(reasons, err.Error())
+	}
+	return fmt.Errorf("parsing failed: %s", strings.Join(reasons, ","))
 }
 
 type Challenge struct {

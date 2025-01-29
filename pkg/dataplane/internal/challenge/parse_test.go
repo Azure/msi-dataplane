@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/stretchr/testify/require"
 )
 
 func TestParse(t *testing.T) {
@@ -13,6 +12,7 @@ func TestParse(t *testing.T) {
 		name   string
 		input  http.Header
 		output []Challenge
+		error  bool
 	}{
 		{
 			name:   "empty",
@@ -95,10 +95,25 @@ func TestParse(t *testing.T) {
 				}},
 			},
 		},
+		{
+			name: "invalid content",
+			input: http.Header{
+				http.CanonicalHeaderKey("WWW-Authenticate"): []string{
+					`\b`,
+				},
+			},
+			output: nil,
+			error:  true,
+		},
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
 			challenges, err := Parse(testCase.input)
-			require.NoError(t, err)
+			if testCase.error && err == nil {
+				t.Errorf("expected an error and got none")
+			}
+			if !testCase.error && err != nil {
+				t.Errorf("expected no error and got one: %v", err)
+			}
 			got, want := challenges, testCase.output
 			if diff := cmp.Diff(got, want); diff != "" {
 				t.Errorf("invalid parse: -want, +got:\n%s", diff)
