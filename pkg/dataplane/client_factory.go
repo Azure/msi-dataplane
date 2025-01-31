@@ -3,13 +3,16 @@ package dataplane
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/url"
+	"os"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/runtime"
 	"github.com/Azure/msi-dataplane/pkg/dataplane/internal"
+	"github.com/go-logr/logr"
 )
 
 const (
@@ -27,12 +30,34 @@ type ClientFactory interface {
 	NewClient(identityURL string) (Client, error)
 }
 
+type clientOpts struct {
+	logger *logr.Logger
+}
+
+type ClientFactoryOption func(*clientOpts)
+
+// WithLogger sets a custom logger for the reloadingCredential.
+// This can be useful for debugging or logging purposes.
+func WithClientLogger(logger *logr.Logger) ClientFactoryOption {
+	return func(c *clientOpts) {
+		c.logger = logger
+	}
+}
+
 // NewClientFactory creates a new MSI data plane client factory. The credentials and audience presented
 // are for the first-party credential. As the server to be contacted for each identity varies, a factory
 // is returned that can create clients on-demand.
-func NewClientFactory(cred azcore.TokenCredential, audience string, opts *azcore.ClientOptions) (ClientFactory, error) {
+func NewClientFactory(cred azcore.TokenCredential, audience string, opts *azcore.ClientOptions, clientFactoryOpts ...ClientFactoryOption) (ClientFactory, error) {
+	defaultLogger := logr.FromSlogHandler(slog.NewTextHandler(os.Stdout, nil))
+	cfOpts := &clientOpts{
+		logger: &defaultLogger,
+	}
+	for _, opt := range clientFactoryOpts {
+		opt(cfOpts)
+	}
+
 	azCoreClient, err := azcore.NewClient(moduleName, moduleVersion, runtime.PipelineOptions{
-		PerCall: []policy.Policy{newAuthenticatorPolicy(cred, audience)},
+		PerCall: []policy.Policy{newAuthenticatorPolicy(cred, audience, cfOpts.logger)},
 	}, opts)
 	if err != nil {
 		return nil, fmt.Errorf("error creating azcore client: %w", err)

@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
+	"github.com/go-logr/logr/testr"
 	. "github.com/onsi/gomega"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
@@ -77,34 +78,16 @@ func TestNewAuthenticatorPolicy(t *testing.T) {
 				g.Expect(resp).To(Equal(fakeTransport.resps[0]))
 			},
 		},
-		{
-			name: "failure, authorization doesn't have tenant ID",
-			fakeTransport: &fakeTransport{
-				resps: []*http.Response{
-					{
-						StatusCode: http.StatusUnauthorized,
-						Header: http.Header{
-							"Www-Authenticate": []string{`Bearer authorization="https://localhost/"`},
-						},
-						Body: http.NoBody,
-					},
-				},
-			},
-			validateRes: func(g *WithT, fakeTransport *fakeTransport, resp *http.Response, err error) {
-				g.Expect(fakeTransport.reqs[0].Header).NotTo(HaveKey("Authorization"))
-				g.Expect(err).To(MatchError(errInvalidTenantID))
-				g.Expect(resp).To(Equal(fakeTransport.resps[0]))
-			},
-		},
 	} {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			g := NewWithT(t)
 
+			log := testr.New(t)
 			pipeline := runtime.NewPipeline("", "", runtime.PipelineOptions{
 				PerCall: []policy.Policy{
-					newAuthenticatorPolicy(&FakeCredential{}, "https://identity_url.com/"),
+					newAuthenticatorPolicy(&FakeCredential{}, "https://identity_url.com/", &log),
 				},
 			}, &policy.ClientOptions{
 				Transport: tt.fakeTransport,

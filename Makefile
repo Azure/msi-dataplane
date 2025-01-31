@@ -38,3 +38,12 @@ verify: lint tidy test generate
 		echo "You need to run 'make generate' to update generated files and commit them"; \
 		exit 1; \
 	fi
+
+_antlr-docker-image:
+	mkdir -p /tmp/antlr4
+	git clone https://github.com/antlr/antlr4.git --depth 1 /tmp/antlr4
+	cd /tmp/antlr4/docker && docker build -t antlr/antlr4 .
+	docker inspect antlr/antlr4 > $@
+
+pkg/dataplane/internal/challenge/challenge_parser.go: _antlr-docker-image
+	docker run --rm -v $(PWD)/$(dir $@):/work:Z antlr/antlr4 -Dlanguage=Go -package challenge Challenge.g4
