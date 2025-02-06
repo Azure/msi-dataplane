@@ -9,20 +9,18 @@ pkg/dataplane/internal/msi-credentials-data-plane.openapi.v2.json:
 	mv ManagedIdentity-MIRP/src/Product/MSI/swagger/CredentialsDataPlane/2024-01-01/msi-credentials-data-plane-2024-01-01.json $@
 	rm -rf ManagedIdentity-MIRP
 
-pkg/dataplane/internal/msi-credentials-data-plane.openapi.v3.yaml: pkg/dataplane/internal/msi-credentials-data-plane.openapi.v2.json
-	docker run -d -p 8080:8080 --name swagger-converter swaggerapi/swagger-converter:latest
-	sleep 2 # wait for server to spin up in the container, could be a poll to speed it up
-	curl -s -H 'Accept: application/yaml' -H 'Content-Type: application/json' -X POST --data @pkg/dataplane/internal/msi-credentials-data-plane.openapi.v2.json localhost:8080/api/convert > $@
-	docker stop swagger-converter && docker rm swagger-converter
+_autorest-docker-image:
+	cd pkg/dataplane/internal && docker build -t azuresdk/autorest -f autorest.Dockerfile
+	docker inspect azuresdk/autorest > $@
 
-pkg/dataplane/internal/generated_client.go: $(OAPI_CODEGEN) pkg/dataplane/internal/msi-credentials-data-plane.openapi.v3.yaml
-	 $(OAPI_CODEGEN) --generate client,models --package internal pkg/dataplane/internal/msi-credentials-data-plane.openapi.v3.yaml > $@
+pkg/dataplane/internal/client/models.go: _autorest-docker-image
+	docker run --rm -v $(realpath $(dir $@)/..):/work:Z azuresdk/autorest /work/autorest.md
 
 test:
 	@echo "Running all tests"
 	go test ./...
 
-generate: pkg/dataplane/internal/generated_client.go
+generate: pkg/dataplane/internal/client/models.go
 
 lint: $(GOLANGCI_LINT)
 	@echo "Running linter"

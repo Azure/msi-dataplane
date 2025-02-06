@@ -26,3 +26,4 @@ go.work
 # VCR environment file - may contain sensitive data
 /hack/vcr/vcr-env
 _antlr-docker-image
+_autorest-docker-image
