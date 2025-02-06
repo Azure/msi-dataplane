@@ -32,7 +32,10 @@ tidy:
 	@echo "Tidying up"
 	go mod tidy
 
-verify: lint tidy test generate
+fmt: $(OPENSHIFT_GOIMPORTS)
+	$(OPENSHIFT_GOIMPORTS) --module github.com/Azure/msi-dataplane
+
+verify: fmt lint tidy test generate
 	if ! git diff --quiet HEAD; then \
 		git diff; \
 		echo "You need to run 'make generate' to update generated files and commit them"; \

@@ -3,7 +3,6 @@
 package challenge // Challenge
 import "github.com/antlr4-go/antlr/v4"
 
-
 // ChallengeListener is a complete listener for a parse tree produced by ChallengeParser.
 type ChallengeListener interface {
 	antlr.ParseTreeListener
