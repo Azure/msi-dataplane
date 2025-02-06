@@ -10,7 +10,7 @@ pkg/dataplane/internal/msi-credentials-data-plane.openapi.v2.json:
 	rm -rf ManagedIdentity-MIRP
 
 _autorest-docker-image:
-	cd pkg/dataplane/internal && docker build -t azuresdk/autorest -f autorest.Dockerfile
+	cd pkg/dataplane/internal && docker build -t azuresdk/autorest -f autorest.Dockerfile .
 	docker inspect azuresdk/autorest > $@
 
 pkg/dataplane/internal/client/models.go: _autorest-docker-image
@@ -20,7 +20,7 @@ test:
 	@echo "Running all tests"
 	go test ./...
 
-generate: pkg/dataplane/internal/client/models.go
+generate: pkg/dataplane/internal/client/models.go pkg/dataplane/internal/challenge/challenge_parser.go
 
 lint: $(GOLANGCI_LINT)
 	@echo "Running linter"
@@ -33,7 +33,8 @@ tidy:
 fmt: $(OPENSHIFT_GOIMPORTS)
 	$(OPENSHIFT_GOIMPORTS) --module github.com/Azure/msi-dataplane
 
-verify: fmt lint tidy test generate
+verify: lint tidy test generate
+	$(MAKE) fmt
 	if ! git diff --quiet HEAD; then \
 		git diff; \
 		echo "You need to run 'make generate' to update generated files and commit them"; \
