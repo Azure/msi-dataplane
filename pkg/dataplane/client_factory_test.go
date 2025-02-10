@@ -48,7 +48,7 @@ func ptrTo[T any](v T) *T {
 	return &v
 }
 
-func managedIdentityCredentials(delegatedResources []*DelegatedResource, explicitIdentities []*UserAssignedIdentityCredentials) ManagedIdentityCredentials {
+func managedIdentityCredentials(delegatedResources []DelegatedResource, explicitIdentities []UserAssignedIdentityCredentials) ManagedIdentityCredentials {
 	return ManagedIdentityCredentials{
 		AuthenticationEndpoint: ptrTo("AuthenticationEndpoint"),
 		CannotRenewAfter:       ptrTo("CannotRenewAfter"),
@@ -56,14 +56,14 @@ func managedIdentityCredentials(delegatedResources []*DelegatedResource, explici
 		ClientSecret:           ptrTo("ClientSecret"),
 		ClientSecretURL:        ptrTo("ClientSecretURL"),
 		CustomClaims:           ptrTo(customClaims()),
-		DelegatedResources: func() []*DelegatedResource {
+		DelegatedResources: func() []DelegatedResource {
 			if len(delegatedResources) > 0 {
 				return delegatedResources
 			}
 			return nil
 		}(),
 		DelegationURL: ptrTo("DelegationURL"),
-		ExplicitIdentities: func() []*UserAssignedIdentityCredentials {
+		ExplicitIdentities: func() []UserAssignedIdentityCredentials {
 			if len(explicitIdentities) > 0 {
 				return explicitIdentities
 			}
@@ -79,24 +79,24 @@ func managedIdentityCredentials(delegatedResources []*DelegatedResource, explici
 	}
 }
 
-func delegatedResource(implicitIdentity *UserAssignedIdentityCredentials, explicitIdentities ...*UserAssignedIdentityCredentials) *DelegatedResource {
-	return &DelegatedResource{
+func delegatedResource(implicitIdentity UserAssignedIdentityCredentials, explicitIdentities ...UserAssignedIdentityCredentials) DelegatedResource {
+	return DelegatedResource{
 		DelegationID:  ptrTo("DelegationID"),
 		DelegationURL: ptrTo("DelegationURL"),
-		ExplicitIdentities: func() []*UserAssignedIdentityCredentials {
+		ExplicitIdentities: func() []UserAssignedIdentityCredentials {
 			if len(explicitIdentities) > 0 {
 				return explicitIdentities
 			}
 			return nil
 		}(),
-		ImplicitIdentity: implicitIdentity,
+		ImplicitIdentity: ptrTo(implicitIdentity),
 		InternalID:       ptrTo("InternalID"),
 		ResourceID:       ptrTo("ResourceID"),
 	}
 }
 
-func userAssignedIdentityCredentials() *UserAssignedIdentityCredentials {
-	return &UserAssignedIdentityCredentials{
+func userAssignedIdentityCredentials() UserAssignedIdentityCredentials {
+	return UserAssignedIdentityCredentials{
 		AuthenticationEndpoint:     ptrTo("AuthenticationEndpoint"),
 		CannotRenewAfter:           ptrTo("CannotRenewAfter"),
 		ClientID:                   ptrTo("ClientID"),
@@ -115,7 +115,7 @@ func userAssignedIdentityCredentials() *UserAssignedIdentityCredentials {
 
 func customClaims() CustomClaims {
 	return CustomClaims{
-		XMSAzNwperimid: []*string{ptrTo("XMSAzNwperimid")},
+		XMSAzNwperimid: []string{"XMSAzNwperimid"},
 		XMSAzTm:        ptrTo("XMSAzTm"),
 	}
 }
@@ -152,10 +152,10 @@ func TestClient(t *testing.T) {
 	}
 	entraServerURL.Path = identityURLQuery.Get("tid")
 
-	mockCredentials := managedIdentityCredentials([]*DelegatedResource{
+	mockCredentials := managedIdentityCredentials([]DelegatedResource{
 		delegatedResource(userAssignedIdentityCredentials(), userAssignedIdentityCredentials(), userAssignedIdentityCredentials()),
 		delegatedResource(userAssignedIdentityCredentials(), userAssignedIdentityCredentials(), userAssignedIdentityCredentials()),
-	}, []*UserAssignedIdentityCredentials{
+	}, []UserAssignedIdentityCredentials{
 		userAssignedIdentityCredentials(),
 		userAssignedIdentityCredentials(),
 	})
@@ -254,8 +254,8 @@ func TestClient(t *testing.T) {
 	t.Run("user assigned identities credentials", func(t *testing.T) {
 		userAssignedRequest := UserAssignedIdentitiesRequest{
 			CustomClaims:       ptrTo(customClaims()),
-			DelegatedResources: []*string{ptrTo("first"), ptrTo("second")},
-			IdentityIDs:        []*string{ptrTo("something"), ptrTo("else")},
+			DelegatedResources: []string{"first", "second"},
+			IdentityIDs:        []string{"something", "else"},
 		}
 		encodedUserAssignedRequest, err := json.Marshal(userAssignedRequest)
 		if err != nil {

@@ -9,16 +9,16 @@ type CredRequestDefinition struct {
 	CustomClaims *CustomClaims
 
 	// The source resource identities.
-	DelegatedResources []*string
+	DelegatedResources []string
 
 	// The identities to retrieve.
-	IdentityIDs []*string
+	IdentityIDs []string
 }
 
 // CustomClaims - The custom claims to include into X509 Certificate
 type CustomClaims struct {
 	// The list of network perimeter ids. Maximum 5 network perimeter ids are supported
-	XMSAzNwperimid []*string
+	XMSAzNwperimid []string
 
 	// The trust mode of the azure resource asserted by RP. The value can either be 'azureinfra' or 'user'
 	XMSAzTm *string
@@ -33,7 +33,7 @@ type DelegatedResource struct {
 	DelegationURL *string
 
 	// The identities requested by the caller.
-	ExplicitIdentities []*UserAssignedIdentityCredentials
+	ExplicitIdentities []UserAssignedIdentityCredentials
 
 	// A managed identity credentials object.
 	ImplicitIdentity *UserAssignedIdentityCredentials
@@ -80,13 +80,13 @@ type ManagedIdentityCredentials struct {
 	CustomClaims *CustomClaims
 
 	// The delegated resources' credentials requested by the caller.
-	DelegatedResources []*DelegatedResource
+	DelegatedResources []DelegatedResource
 
 	// URL to perform RP-to-RP delegation for non-ARM resources, requiring manual onboarding via MIRP team.
 	DelegationURL *string
 
 	// The user assigned identities requested by the caller. This array will be empty for system assigned credential only requests.
-	ExplicitIdentities []*UserAssignedIdentityCredentials
+	ExplicitIdentities []UserAssignedIdentityCredentials
 
 	// An internal identifier for the resource in managed identity RP.
 	InternalID *string
