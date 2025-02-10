@@ -29,9 +29,9 @@ $(GOLANGCI_LINT): $(BINGO_DIR)/golangci-lint.mod
 	@echo "(re)installing $(GOBIN)/golangci-lint-v1.63.4"
 	@cd $(BINGO_DIR) && GOWORK=off $(GO) build -mod=mod -modfile=golangci-lint.mod -o=$(GOBIN)/golangci-lint-v1.63.4 "github.com/golangci/golangci-lint/cmd/golangci-lint"
 
-OAPI_CODEGEN := $(GOBIN)/oapi-codegen-v2.4.1
-$(OAPI_CODEGEN): $(BINGO_DIR)/oapi-codegen.mod
+OPENSHIFT_GOIMPORTS := $(GOBIN)/openshift-goimports-v0.0.0-20230304234052-c70783e636f2
+$(OPENSHIFT_GOIMPORTS): $(BINGO_DIR)/openshift-goimports.mod
 	@# Install binary/ries using Go 1.14+ build command. This is using bwplotka/bingo-controlled, separate go module with pinned dependencies.
-	@echo "(re)installing $(GOBIN)/oapi-codegen-v2.4.1"
-	@cd $(BINGO_DIR) && GOWORK=off $(GO) build -mod=mod -modfile=oapi-codegen.mod -o=$(GOBIN)/oapi-codegen-v2.4.1 "github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen"
+	@echo "(re)installing $(GOBIN)/openshift-goimports-v0.0.0-20230304234052-c70783e636f2"
+	@cd $(BINGO_DIR) && GOWORK=off $(GO) build -mod=mod -modfile=openshift-goimports.mod -o=$(GOBIN)/openshift-goimports-v0.0.0-20230304234052-c70783e636f2 "github.com/openshift-eng/openshift-goimports"
 

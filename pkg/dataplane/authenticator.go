@@ -10,8 +10,9 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/runtime"
-	"github.com/Azure/msi-dataplane/pkg/dataplane/internal/challenge"
 	"github.com/go-logr/logr"
+
+	"github.com/Azure/msi-dataplane/pkg/dataplane/internal/challenge"
 )
 
 var (
