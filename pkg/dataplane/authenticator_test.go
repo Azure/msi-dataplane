@@ -9,7 +9,6 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/runtime"
-	"github.com/go-logr/logr/testr"
 	. "github.com/onsi/gomega"
 )
 
@@ -83,10 +82,9 @@ func TestNewAuthenticatorPolicy(t *testing.T) {
 			t.Parallel()
 			g := NewWithT(t)
 
-			log := testr.New(t)
 			pipeline := runtime.NewPipeline("", "", runtime.PipelineOptions{
 				PerCall: []policy.Policy{
-					newAuthenticatorPolicy(&FakeCredential{}, "https://identity_url.com/", &log),
+					newAuthenticatorPolicy(&FakeCredential{}, "https://identity_url.com/"),
 				},
 			}, &policy.ClientOptions{
 				Transport: tt.fakeTransport,
