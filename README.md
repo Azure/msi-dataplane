@@ -2,10 +2,6 @@
 
 Package `msi-dataplane` is a module for Azure resource providers to interact with MSI's dataplane.
 
-This module provides two clients:
-- `dataplane`: a client to make requests to MSI's resource provider
-- `store`: a thin wrapper client to store, retrieve and delete managed identity objects from an Azure Key Vault instance
-
 ## Contributing
 
 This project welcomes contributions and suggestions.  Most contributions require you to agree to a
