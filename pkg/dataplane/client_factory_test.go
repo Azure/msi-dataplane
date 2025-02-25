@@ -44,10 +44,6 @@ type response struct {
 	Body       []byte
 }
 
-func ptrTo[T any](v T) *T {
-	return &v
-}
-
 func managedIdentityCredentials(delegatedResources []DelegatedResource, explicitIdentities []UserAssignedIdentityCredentials) ManagedIdentityCredentials {
 	return ManagedIdentityCredentials{
 		AuthenticationEndpoint: ptrTo("AuthenticationEndpoint"),
