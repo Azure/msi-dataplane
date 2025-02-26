@@ -2,6 +2,10 @@
 
 Package `msi-dataplane` is a module for Azure resource providers to interact with MSI's dataplane.
 
+## Usage
+
+Please see the [sample program](./pkg/dataplane/internal/sample/client.go) for an example of how to use this client.
+
 ## Contributing
 
 This project welcomes contributions and suggestions.  Most contributions require you to agree to a
