@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"crypto/sha256"
 	"log"
+	"math/big"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azsecrets"
@@ -55,6 +57,9 @@ func main() {
 
 	// or store individual uamsi values
 	for _, identity := range credential.ExplicitIdentities {
+		// choose some identifier known to clients that do not have access to the identity object for storage,
+		// to allow lookups
+		identifier := base36sha224([]byte(*identity.ObjectID))
 		name, params, err := dataplane.FormatUserAssignedIdentityCredentialsForStorage(identifier, identity)
 		if err != nil {
 			log.Fatalf("error formatting user-assigned managed identity credentials: %v", err)
@@ -63,4 +68,13 @@ func main() {
 			log.Fatalf("error uploading user-assigned managed identity credentials to key vault: %v", err)
 		}
 	}
+}
+
+func base36sha224(input []byte) string {
+	// base36(sha224(value)) produces a useful, deterministic value that fits the requirements to be
+	// a KeyVault object name (honoring length requirement, is a valid DNS subdomain, etc)
+	hash := sha256.Sum224(input)
+	var i big.Int
+	i.SetBytes(hash[:])
+	return i.Text(36)
 }
