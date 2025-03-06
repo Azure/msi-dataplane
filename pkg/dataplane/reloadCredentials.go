@@ -3,6 +3,7 @@ package dataplane
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"os"
 	"sync"
@@ -17,8 +18,6 @@ import (
 
 const (
 	// Errors returned when reloading credentials
-	errCreateFileWatcher = "failed to create file watcher"
-	errAddFileToWatcher  = "failed to add credentialFile to file watcher"
 	errLoadCredentials   = "failed to load credentials from file"
 )
 
@@ -81,7 +80,9 @@ func NewUserAssignedIdentityCredential(ctx context.Context, credentialPath strin
 		return nil, err
 	}
 	// start the process of watching - the caller can cancel ctx if they want to stop
-	credential.start(ctx, credentialPath)
+	if err := credential.start(ctx, credentialPath); err != nil {
+		return nil, err
+	}
 	return credential, nil
 }
 
@@ -94,19 +95,20 @@ func (r *reloadingCredential) GetToken(ctx context.Context, options policy.Token
 	return r.currentValue.GetToken(ctx, options)
 }
 
-func (r *reloadingCredential) start(ctx context.Context, credentialFile string) {
+func (r *reloadingCredential) start(ctx context.Context, credentialFile string) error {
 	// set up the file watcher, call load() when we see events or on some timer in case no events are delivered
 	fileWatcher, err := fsnotify.NewWatcher()
 	if err != nil {
-		r.logger.Error(err, errCreateFileWatcher)
+		return fmt.Errorf("failed to create file watcher: %w", err)
 	}
 	// we close the file watcher if adding the file to watch fails.
 	// this will also close the new go routine created to watch the file
 	err = fileWatcher.Add(credentialFile)
 	if err != nil {
-		fileWatcher.Close()
-		r.logger.Error(err, errAddFileToWatcher)
-		return
+		if closeErr := fileWatcher.Close(); closeErr != nil {
+			r.logger.Error(err, "failed to close file watcher")
+		}
+		return fmt.Errorf("failed to add credential file to file watcher: %w", err)
 	}
 
 	go func() {
@@ -140,6 +142,7 @@ func (r *reloadingCredential) start(ctx context.Context, credentialFile string) 
 			}
 		}
 	}()
+	return nil
 }
 
 func (r *reloadingCredential) load(credentialFile string) error {
