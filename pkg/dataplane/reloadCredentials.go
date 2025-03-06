@@ -16,11 +16,6 @@ import (
 	"github.com/go-logr/logr"
 )
 
-const (
-	// Errors returned when reloading credentials
-	errLoadCredentials   = "failed to load credentials from file"
-)
-
 type reloadingCredential struct {
 	clientOpts   azcore.ClientOptions
 	currentValue *azidentity.ClientCertificateCredential
@@ -127,19 +122,19 @@ func (r *reloadingCredential) start(ctx context.Context, credentialFile string) 
 				}
 				if event.Op.Has(fsnotify.Write) {
 					if err := r.load(credentialFile); err != nil {
-						r.logger.Error(err, errLoadCredentials)
+						r.logger.Error(err, "failed to reload credential after file event")
 					}
 				}
 			case <-r.ticker.C:
 				if err := r.load(credentialFile); err != nil {
-					r.logger.Error(err, errLoadCredentials)
+					r.logger.Error(err, "failed to reload credential periodically")
 				}
 			case err, ok := <-fileWatcher.Errors:
 				if !ok {
 					r.logger.Info("stopping credential reloader since file watcher has no events")
 					return
 				}
-				r.logger.Error(err, errLoadCredentials)
+				r.logger.Error(err, "recieved an error from the file watcher")
 			case <-ctx.Done():
 				r.logger.Info("user signaled context cancel, stopping credential reloader")
 				return
@@ -153,18 +148,18 @@ func (r *reloadingCredential) load(credentialFile string) error {
 	// read the file from the filesystem and update the current value we're holding on to if the certificate we read is newer, making sure to not step on the toes of anyone calling GetToken()
 	byteValue, err := os.ReadFile(credentialFile)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to read credential file %s: %w", credentialFile, err)
 	}
 
 	var credentials UserAssignedIdentityCredentials
 	if err := json.Unmarshal(byteValue, &credentials); err != nil {
-		return err
+		return fmt.Errorf("failed to unmarshal credential file %s: %w", credentialFile, err)
 	}
 
 	var newCertValue *azidentity.ClientCertificateCredential
 	newCertValue, err = GetCredential(r.clientOpts, credentials)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get client certificate credential: %w", err)
 	}
 
 	r.lock.Lock()
@@ -172,7 +167,7 @@ func (r *reloadingCredential) load(credentialFile string) error {
 	if r.notBefore != "" {
 		err, ok := isLoadedCredentialNewer(*credentials.NotBefore, r.notBefore)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to determine not_before for credential: %w", err)
 		}
 		if !ok {
 			return nil
