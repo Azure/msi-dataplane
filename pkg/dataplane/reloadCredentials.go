@@ -112,7 +112,11 @@ func (r *reloadingCredential) start(ctx context.Context, credentialFile string) 
 	}
 
 	go func() {
-		defer fileWatcher.Close()
+		defer func() {
+			if err := fileWatcher.Close(); err != nil {
+				r.logger.Error(err, "failed to close file watcher")
+			}
+		}()
 		defer r.ticker.Stop()
 		for {
 			select {
