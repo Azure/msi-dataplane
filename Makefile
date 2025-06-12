@@ -1,3 +1,7 @@
+# Version of autorest to use for code generation
+AUTOREST_VERSION := 3.7.1
+AUTOREST_CORE_VERSION := 3.10.3
+
 include ./.bingo/Variables.mk
 
 # ADO does not expose an unauthenticated API for fetching one file, and the git server
@@ -10,7 +14,10 @@ pkg/dataplane/internal/msi-credentials-data-plane.openapi.v2.json:
 	rm -rf ManagedIdentity-MIRP
 
 _autorest-docker-image:
-	cd pkg/dataplane/internal && docker build -t azuresdk/autorest -f autorest.Dockerfile .
+	cd pkg/dataplane/internal && docker build -t azuresdk/autorest \
+		--build-arg AUTOREST_VERSION=$(AUTOREST_VERSION) \
+		--build-arg AUTOREST_CORE_VERSION=$(AUTOREST_CORE_VERSION) \
+		-f autorest.Dockerfile .
 	docker inspect azuresdk/autorest > $@
 
 pkg/dataplane/internal/client/models.go: _autorest-docker-image
