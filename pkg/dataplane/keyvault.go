@@ -78,7 +78,7 @@ func keyVaultParameters(credentials any, rawNotAfter, rawNotBefore, rawRenewAfte
 
 	raw, err := json.Marshal(credentials)
 	if err != nil {
-		return azsecrets.SetSecretParameters{}, fmt.Errorf("failed to marshal credentials: %v", err)
+		return azsecrets.SetSecretParameters{}, fmt.Errorf("failed to marshal credentials: %w", err)
 	}
 
 	return azsecrets.SetSecretParameters{

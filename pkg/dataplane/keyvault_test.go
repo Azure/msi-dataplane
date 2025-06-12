@@ -4,8 +4,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azsecrets"
 	"github.com/google/go-cmp/cmp"
+
+	"github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azsecrets"
 
 	"github.com/Azure/msi-dataplane/pkg/dataplane/internal/client"
 )

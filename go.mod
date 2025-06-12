@@ -1,6 +1,6 @@
 module github.com/Azure/msi-dataplane
 
-go 1.23.0
+go 1.24.3
 
 require (
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.17.0

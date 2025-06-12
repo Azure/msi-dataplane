@@ -13,10 +13,11 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
-	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
 )
 
 type mockCredential struct {
@@ -121,7 +122,7 @@ type transporter struct {
 }
 
 func (t *transporter) Do(req *http.Request) (*http.Response, error) {
-	return t.RoundTripper.RoundTrip(req)
+	return t.RoundTrip(req)
 }
 
 var _ policy.Transporter = (*transporter)(nil)
