@@ -1,5 +1,7 @@
 FROM node:lts
 
-RUN npm install -g autorest
+ARG AUTOREST_VERSION
+ARG AUTOREST_CORE_VERSION
+RUN npm install -g @autorest/core@${AUTOREST_CORE_VERSION} autorest@${AUTOREST_VERSION}
 
 ENTRYPOINT ["autorest"]
