@@ -84,7 +84,7 @@ func TestNewAuthenticatorPolicy(t *testing.T) {
 
 			pipeline := runtime.NewPipeline("", "", runtime.PipelineOptions{
 				PerCall: []policy.Policy{
-					newAuthenticatorPolicy(&FakeCredential{}, "https://identity_url.com/"),
+					newAuthenticatorPolicy(&FakeCredential{}, "https://identity_url.com/", false),
 				},
 			}, &policy.ClientOptions{
 				Transport: tt.fakeTransport,
@@ -95,6 +95,80 @@ func TestNewAuthenticatorPolicy(t *testing.T) {
 
 			resp, err := pipeline.Do(req)
 			tt.validateRes(g, tt.fakeTransport, resp, err)
+		})
+	}
+}
+
+func Test_AuthenticatorPolicy_AllowHTTP(t *testing.T) {
+	t.Parallel()
+
+	for _, tt := range []struct {
+		name        string
+		allowHTTP   bool
+		targetURL   string
+		expectError bool
+	}{
+		{
+			name:        "HTTP disallowed with https target url",
+			allowHTTP:   false,
+			targetURL:   "https://localhost/",
+			expectError: false,
+		},
+		{
+			name:        "HTTP disallowed with http target url",
+			allowHTTP:   false,
+			targetURL:   "http://localhost/",
+			expectError: true,
+		},
+		{
+			name:        "HTTP allowed with https target url",
+			allowHTTP:   true,
+			targetURL:   "https://localhost/",
+			expectError: false,
+		},
+		{
+			name:        "HTTP allowed with http target url",
+			allowHTTP:   true,
+			targetURL:   "http://localhost/",
+			expectError: false,
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			g := NewWithT(t)
+
+			pipeline := runtime.NewPipeline("", "", runtime.PipelineOptions{
+				PerCall: []policy.Policy{
+					newAuthenticatorPolicy(&FakeCredential{}, "https://identity_url.com/", tt.allowHTTP),
+				},
+			}, &policy.ClientOptions{
+				Transport: &fakeTransport{
+					resps: []*http.Response{
+						{
+							StatusCode: http.StatusUnauthorized,
+							Header: http.Header{
+								"Www-Authenticate": []string{`Bearer authorization="https://login.windows-ppe.net/5D929AE3-B37C-46AA-A3C8-C1558902F101"`},
+							},
+							Body: http.NoBody,
+						},
+						{
+							StatusCode: http.StatusOK,
+							Body:       http.NoBody,
+						},
+					},
+				},
+			})
+
+			req, err := runtime.NewRequest(context.Background(), http.MethodGet, tt.targetURL)
+			g.Expect(err).NotTo(HaveOccurred())
+
+			resp, err := pipeline.Do(req)
+			if tt.expectError {
+				g.Expect(err).To(HaveOccurred())
+			} else {
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(resp.StatusCode).To(Equal(http.StatusOK))
+			}
 		})
 	}
 }
