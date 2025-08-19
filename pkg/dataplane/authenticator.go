@@ -19,7 +19,7 @@ var (
 )
 
 // Authenticating with MSI: https://eng.ms/docs/products/arm/rbac/managed_identities/msionboardinginteractionwithmsi .
-func newAuthenticatorPolicy(cred azcore.TokenCredential, audience string) policy.Policy {
+func newAuthenticatorPolicy(cred azcore.TokenCredential, audience string, allowHTTP bool) policy.Policy {
 	return runtime.NewBearerTokenPolicy(cred, nil, &policy.BearerTokenOptions{
 		AuthorizationHandler: policy.AuthorizationHandler{
 			// Make an unauthenticated request
@@ -52,6 +52,7 @@ func newAuthenticatorPolicy(cred azcore.TokenCredential, audience string) policy
 				})
 			},
 		},
+		InsecureAllowCredentialWithHTTP: allowHTTP,
 	})
 }
 
