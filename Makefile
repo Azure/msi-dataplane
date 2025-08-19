@@ -33,15 +33,16 @@ lint: $(GOLANGCI_LINT)
 	@echo "Running linter"
 	$(GOLANGCI_LINT) run
 
+lint-fix: $(GOLANGCI_LINT)
+	$(GOLANGCI_LINT) run --fix
+
 tidy:
 	@echo "Tidying up"
 	go mod tidy
 
-fmt: $(OPENSHIFT_GOIMPORTS)
-	$(OPENSHIFT_GOIMPORTS) --module github.com/Azure/msi-dataplane
-
 verify: lint tidy test generate
-	$(MAKE) fmt
+	$(MAKE) lint-fix
+	go fmt ./...
 	if ! git diff --quiet HEAD; then \
 		git diff; \
 		echo "You need to run 'make generate' to update generated files and commit them"; \

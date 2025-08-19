@@ -23,15 +23,9 @@ $(BINGO): $(BINGO_DIR)/bingo.mod
 	@echo "(re)installing $(GOBIN)/bingo-v0.9.0"
 	@cd $(BINGO_DIR) && GOWORK=off $(GO) build -mod=mod -modfile=bingo.mod -o=$(GOBIN)/bingo-v0.9.0 "github.com/bwplotka/bingo"
 
-GOLANGCI_LINT := $(GOBIN)/golangci-lint-v1.63.4
+GOLANGCI_LINT := $(GOBIN)/golangci-lint-v2.1.6
 $(GOLANGCI_LINT): $(BINGO_DIR)/golangci-lint.mod
 	@# Install binary/ries using Go 1.14+ build command. This is using bwplotka/bingo-controlled, separate go module with pinned dependencies.
-	@echo "(re)installing $(GOBIN)/golangci-lint-v1.63.4"
-	@cd $(BINGO_DIR) && GOWORK=off $(GO) build -mod=mod -modfile=golangci-lint.mod -o=$(GOBIN)/golangci-lint-v1.63.4 "github.com/golangci/golangci-lint/cmd/golangci-lint"
-
-OPENSHIFT_GOIMPORTS := $(GOBIN)/openshift-goimports-v0.0.0-20230304234052-c70783e636f2
-$(OPENSHIFT_GOIMPORTS): $(BINGO_DIR)/openshift-goimports.mod
-	@# Install binary/ries using Go 1.14+ build command. This is using bwplotka/bingo-controlled, separate go module with pinned dependencies.
-	@echo "(re)installing $(GOBIN)/openshift-goimports-v0.0.0-20230304234052-c70783e636f2"
-	@cd $(BINGO_DIR) && GOWORK=off $(GO) build -mod=mod -modfile=openshift-goimports.mod -o=$(GOBIN)/openshift-goimports-v0.0.0-20230304234052-c70783e636f2 "github.com/openshift-eng/openshift-goimports"
+	@echo "(re)installing $(GOBIN)/golangci-lint-v2.1.6"
+	@cd $(BINGO_DIR) && GOWORK=off $(GO) build -mod=mod -modfile=golangci-lint.mod -o=$(GOBIN)/golangci-lint-v2.1.6 "github.com/golangci/golangci-lint/v2/cmd/golangci-lint"
 

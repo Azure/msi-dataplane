@@ -6,10 +6,11 @@ import (
 	"net/http"
 	"testing"
 
+	. "github.com/onsi/gomega"
+
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/runtime"
-	. "github.com/onsi/gomega"
 )
 
 type fakeTransport struct {

@@ -9,11 +9,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/fsnotify/fsnotify"
+	"github.com/go-logr/logr"
+
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
-	"github.com/fsnotify/fsnotify"
-	"github.com/go-logr/logr"
 )
 
 type reloadingCredential struct {
